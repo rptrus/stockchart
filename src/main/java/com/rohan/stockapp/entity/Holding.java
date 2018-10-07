@@ -1,14 +1,19 @@
 package com.rohan.stockapp.entity;
 
+// a set of codes for one user in particular
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "CONTACT")
+@Table(name = "HOLDING")
 public class Holding {
 
 	public Holding(Long id, LocalDateTime dateAcquired, LocalDateTime dateDisposed, String code, BigDecimal price) {
@@ -23,6 +28,7 @@ public class Holding {
 	public Holding() {}
 
 	@Id
+	@GeneratedValue
 	public Long id;
 		
 	LocalDateTime dateAcquired;
@@ -32,6 +38,18 @@ public class Holding {
 	String code;
 		
 	BigDecimal price;
+	
+	@OneToOne(cascade = CascadeType.ALL)
+	Quote quote;
+	
+	//@OneToOne(cascade = CascadeType.ALL)
+	public Quote getQuote() {
+		return quote;
+	}
+	
+	public void setQuote(Quote quote) {
+		this.quote = quote;
+	}
 	
 	public Long getId() {
 		return id;
