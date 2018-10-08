@@ -8,6 +8,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import javax.annotation.PostConstruct;
 
@@ -30,10 +32,17 @@ public class Processor {
 	@Autowired
 	HoldingRepository holdingRepository;
 	
+	@Autowired
+	ChartConstruction chart;
+	
+	@Autowired
+	StockPriceRetriever stockPriceRetriever;
 	
 	@PostConstruct
-	public void testIt() throws URISyntaxException, IOException {
+	public void testIt() throws URISyntaxException, IOException, InterruptedException, ExecutionException {
 		
+		chart.makePDFChart();
+		System.out.println("Done with chart!");
 		
 		List nudge = jdbcTemplate.queryForList("select * from holding");
 		System.out.println(nudge);
@@ -41,22 +50,23 @@ public class Processor {
 		Holding holding = new Holding(2L, LocalDateTime.now(), LocalDateTime.now(), "VAS", new BigDecimal(1.23));
 		Quote quote = new Quote(2L, "VAS", new BigDecimal(1.99));
 		holding.setQuote(quote);
-		holdingRepository.save(holding);				
+		quote.setHolding(holding);
+//		holdingRepository.save(holding);				
+
+		// need to poll 1 by 1
+		Future<String> a = stockPriceRetriever.retrieveQuote("VTS");
+		Future<String> b = stockPriceRetriever.retrieveQuote("BHP");
 		
-		//https://finance.yahoo.com/quote/DDR.AX
-		URI uri = new URI("https://finance.yahoo.com/quote/DDR.AX");		
-		//,"currency":"AUD","regularMarketPrice":{"raw":35.5,"fmt":"35.50"}
+//		try {
+//			Thread.sleep(5000);
+//		} catch (InterruptedException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
+				
+		System.out.println("->"+ a.get());
+		System.out.println("->"+ b.get());
 		
-		String code = "DDR";		
-		
-		RestTemplate restTemplate = new RestTemplate();
-		ResponseEntity<String> result = restTemplate.getForEntity(uri.toString(), String.class);
-		System.out.println(result.getBody());
-		
-		String aQuote = result.getBody();
-		System.out.println(aQuote);
-		
-		Files.write(Paths.get("c:\\temp\\output.txt"), aQuote.getBytes());
 		
 		// regex
 		
