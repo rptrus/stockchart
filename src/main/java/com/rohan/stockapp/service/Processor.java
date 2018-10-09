@@ -7,7 +7,10 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -21,7 +24,9 @@ import org.springframework.web.client.RestTemplate;
 
 import com.rohan.stockapp.entity.Holding;
 import com.rohan.stockapp.entity.Quote;
+import com.rohan.stockapp.entity.User;
 import com.rohan.stockapp.repository.HoldingRepository;
+import com.rohan.stockapp.repository.UserRepository;
 
 @Component
 public class Processor {
@@ -29,8 +34,11 @@ public class Processor {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	
+	//@Autowired
+	//HoldingRepository holdingRepository;
+	
 	@Autowired
-	HoldingRepository holdingRepository;
+	UserRepository userRepository;
 	
 	@Autowired
 	ChartConstruction chart;
@@ -47,11 +55,36 @@ public class Processor {
 		List nudge = jdbcTemplate.queryForList("select * from holding");
 		System.out.println(nudge);
 		
-		Holding holding = new Holding(2L, LocalDateTime.now(), LocalDateTime.now(), "VAS", new BigDecimal(1.23));
-		Quote quote = new Quote(2L, "VAS", new BigDecimal(1.99));
-		holding.setQuote(quote);
-		quote.setHolding(holding);
-//		holdingRepository.save(holding);				
+		User user = new User();
+		user.setBio("The founding user");
+		user.setDateJoined(LocalDateTime.now());
+		user.setUsername("rohan");
+		user.setPassword(Utils.md5Hash("password"));
+
+		// 1
+		Holding holding1 = new Holding(LocalDateTime.now(), LocalDateTime.now(), "VAS", new BigDecimal(1.23));
+		Quote quote1 = new Quote("VAS", new BigDecimal(1.99));
+		holding1.setQuote(quote1);
+		holding1.setUser(user);
+		quote1.setHolding(holding1);
+		
+		// 2
+		Holding holding2 = new Holding(LocalDateTime.now(), LocalDateTime.now(), "WBC", new BigDecimal(26.99));
+		Quote quote2 = new Quote("WBC", new BigDecimal(28.99));
+		holding2.setQuote(quote2);
+		holding2.setUser(user);
+		quote2.setHolding(holding2);
+		
+		Set<Holding> stockSet = new HashSet<>();
+		stockSet.add(holding1);
+		stockSet.add(holding2);
+		
+		user.setHoldings(stockSet);
+		
+		userRepository.save(user);
+		
+		User retrieved = userRepository.findByUsername("rohan");
+		User retrieved1 = userRepository.findByUsername("bugga");
 
 		// need to poll 1 by 1
 		Future<String> a = stockPriceRetriever.retrieveQuote("VTS");

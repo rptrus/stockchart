@@ -16,9 +16,8 @@ import javax.persistence.Table;
 @Table(name = "QUOTE")
 public class Quote {
 	
-	public Quote(Long id, String code, BigDecimal nowPrice) {
+	public Quote(String code, BigDecimal nowPrice) {
 		super();
-		this.id = id;
 		this.code = code;
 		this.nowPrice = nowPrice;
 	}

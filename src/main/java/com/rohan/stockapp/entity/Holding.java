@@ -9,6 +9,8 @@ import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
@@ -16,9 +18,8 @@ import javax.persistence.Table;
 @Table(name = "HOLDING")
 public class Holding {
 
-	public Holding(Long id, LocalDateTime dateAcquired, LocalDateTime dateDisposed, String code, BigDecimal price) {
+	public Holding(LocalDateTime dateAcquired, LocalDateTime dateDisposed, String code, BigDecimal price) {
 		super();
-		this.id = id;
 		this.dateAcquired = dateAcquired;
 		this.dateDisposed = dateDisposed;
 		this.code = code;
@@ -42,6 +43,18 @@ public class Holding {
 	@OneToOne(cascade = CascadeType.ALL)
 	Quote quote;
 	
+	@ManyToOne
+    @JoinColumn(name="user_id", nullable=false)
+	User user;
+	
+	public User getUser() {
+		return user;
+	}
+
+	public void setUser(User user) {
+		this.user = user;
+	}
+
 	//@OneToOne(cascade = CascadeType.ALL)
 	public Quote getQuote() {
 		return quote;
