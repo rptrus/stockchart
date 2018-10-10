@@ -43,7 +43,7 @@ public class StockPriceRetriever {
 		
 		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<String> result = restTemplate.getForEntity(uri.toString(), String.class);
-		System.out.println(result.getBody());
+		//System.out.println(result.getBody());
 		
 		aQuotePage = result.getBody();
 		quote = regexManager.getLastPrice(aQuotePage, code);

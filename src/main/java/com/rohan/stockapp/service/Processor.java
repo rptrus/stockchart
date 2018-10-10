@@ -34,9 +34,6 @@ public class Processor {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	
-	//@Autowired
-	//HoldingRepository holdingRepository;
-	
 	@Autowired
 	UserRepository userRepository;
 	
@@ -89,6 +86,8 @@ public class Processor {
 		// need to poll 1 by 1
 		Future<String> a = stockPriceRetriever.retrieveQuote("VTS");
 		Future<String> b = stockPriceRetriever.retrieveQuote("BHP");
+		Future<String> c = stockPriceRetriever.retrieveQuote("WBC");
+		Future<String> d = stockPriceRetriever.retrieveQuote("KGN");
 		
 //		try {
 //			Thread.sleep(5000);
@@ -97,9 +96,10 @@ public class Processor {
 //			e.printStackTrace();
 //		}
 				
-		System.out.println("->"+ a.get());
-		System.out.println("->"+ b.get());
-		
+		System.out.println("VTS->"+ a.get());
+		System.out.println("BHP->"+ b.get());		
+		System.out.println("WBC->"+ c.get());
+		System.out.println("KGN->"+ d.get());
 		
 		// regex
 		
