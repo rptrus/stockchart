@@ -28,6 +28,7 @@ public class StockPriceRetriever {
 		
 		String aQuotePage = null;
 		String quote = null;
+		String industry = null;
 		
 		try {
 		//https://finance.yahoo.com/quote/DDR.AX like this
@@ -47,16 +48,15 @@ public class StockPriceRetriever {
 		
 		aQuotePage = result.getBody();
 		quote = regexManager.getLastPrice(aQuotePage, code);
-		//System.out.println(aQuotePage);
+		industry = regexManager.getIndustry(aQuotePage);
 		
 		Files.write(Paths.get("c:\\temp\\output"+code+".txt"), aQuotePage.getBytes());
 		} catch (IOException e){
 			e.printStackTrace();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		return new AsyncResult<String>(quote);
+		return new AsyncResult<String>(quote+" "+industry);
 
 	}
 

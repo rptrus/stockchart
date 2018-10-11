@@ -11,6 +11,17 @@ public abstract class BaseReportElement {
 		System.err.println();
 	}
 	
+	
+	
+	public BaseReportElement(LocalDate dateAcquired, String code, BigDecimal price) {
+		super();
+		this.dateAcquired = dateAcquired;
+		this.code = code;
+		this.price = price;
+	}
+
+
+
 	LocalDate dateAcquired;	
 	
 	String code;
@@ -21,6 +32,18 @@ public abstract class BaseReportElement {
 	
 	// movementPercentage
 	
+	public BigDecimal getPrice() {
+		return price;
+	}
+
+
+
+	public void setPrice(BigDecimal price) {
+		this.price = price;
+	}
+
+
+
 	public LocalDate getDateAcquired() {
 		return dateAcquired;
 	}
