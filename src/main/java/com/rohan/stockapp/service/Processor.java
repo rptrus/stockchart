@@ -88,6 +88,8 @@ public class Processor {
 		Future<String> b = stockPriceRetriever.retrieveQuote("BHP");
 		Future<String> c = stockPriceRetriever.retrieveQuote("WBC");
 		Future<String> d = stockPriceRetriever.retrieveQuote("KGN");
+		Future<String> e = stockPriceRetriever.retrieveQuote("RHC");
+		Future<String> f = stockPriceRetriever.retrieveQuote("FLT");
 		
 //		try {
 //			Thread.sleep(5000);
@@ -100,6 +102,9 @@ public class Processor {
 		System.out.println("BHP->"+ b.get());		
 		System.out.println("WBC->"+ c.get());
 		System.out.println("KGN->"+ d.get());
+		System.out.println("RHC->"+ e.get());
+		System.out.println("FLT->"+ f.get());
+		
 		
 		// regex
 		

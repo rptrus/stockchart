@@ -1,5 +1,7 @@
 package com.rohan.stockapp.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.security.MessageDigest;
 
 import org.apache.commons.codec.digest.DigestUtils;
@@ -12,6 +14,10 @@ public class Utils {
 	    return DigestUtils
 	      .md5Hex(text2Cypher).toUpperCase();
 	         
+	}
+	
+	public static BigDecimal rectify(BigDecimal input, int scale) {
+		return input.setScale(scale, RoundingMode.HALF_EVEN);
 	}
 
 }

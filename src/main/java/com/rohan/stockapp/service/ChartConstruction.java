@@ -91,7 +91,7 @@ public class ChartConstruction {
 	             document.add(stockStatsTable(re));
 	             
 	             document.add(paragraph);
-	             
+	              
 	            JFreeChart chart = makePieChart();
 	 			BufferedImage bufferedImage = chart.createBufferedImage(300, 300);
 	 			Image image = Image.getInstance(writer, bufferedImage, 1.0f);
@@ -110,7 +110,6 @@ public class ChartConstruction {
 	
 	  private PdfPTable stockStatsTable(ReportElements re) throws ParseException
 	    {
-	        System.out.println(re.merchantCurrency);
 	        String daCurrency= null;
 	        
 	        float[] columnWidths = {3.5f, 2f, 2f, 2f, 2f};

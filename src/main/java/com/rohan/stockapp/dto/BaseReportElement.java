@@ -3,6 +3,8 @@ package com.rohan.stockapp.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import com.rohan.stockapp.service.Utils;
+
 public abstract class BaseReportElement {
 	
 	//Code	Purchase date	Quote date	Now price	Movement (price)	Movement (percentage)
@@ -13,11 +15,12 @@ public abstract class BaseReportElement {
 	
 	
 	
-	public BaseReportElement(LocalDate dateAcquired, String code, BigDecimal price) {
+	public BaseReportElement(LocalDate dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice) {
 		super();
 		this.dateAcquired = dateAcquired;
 		this.code = code;
-		this.price = price;
+		this.acquiredPrice = Utils.rectify(acquiredPrice,2);
+		this.currentPrice = Utils.rectify(nowPrice,2);
 	}
 
 
@@ -26,20 +29,36 @@ public abstract class BaseReportElement {
 	
 	String code;
 	
-	BigDecimal price;
+	BigDecimal acquiredPrice;
+	
+	BigDecimal currentPrice;
+	
+	//BigDecimal nowPrice;
 	
 	// movementPrice
 	
 	// movementPercentage
 	
-	public BigDecimal getPrice() {
-		return price;
+	public BigDecimal getCurrentPrice() {
+		return currentPrice;
 	}
 
 
 
-	public void setPrice(BigDecimal price) {
-		this.price = price;
+	public void setCurrentPrice(BigDecimal currentPrice) {
+		this.currentPrice = currentPrice;
+	}
+
+
+
+	public BigDecimal geAcquiredPrice() {
+		return acquiredPrice;
+	}
+
+
+
+	public void setAcquiredPrice(BigDecimal price) {
+		this.acquiredPrice = price;
 	}
 
 
