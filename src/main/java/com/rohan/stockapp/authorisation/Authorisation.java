@@ -1,4 +1,4 @@
-package com.rohan.stockapp.service;
+package com.rohan.stockapp.authorisation;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

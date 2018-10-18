@@ -35,13 +35,16 @@ public class Processor {
 	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired
-	UserRepository userRepository;
+	private UserRepository userRepository;
 	
 	@Autowired
-	ChartConstruction chart;
+	private ChartConstruction chart;
 	
 	@Autowired
-	StockPriceRetriever stockPriceRetriever;
+	private StockPriceRetriever stockPriceRetriever;
+	
+	@Autowired
+	private UserService userService;
 	
 	@PostConstruct
 	public void testIt() throws URISyntaxException, IOException, InterruptedException, ExecutionException {
@@ -81,7 +84,8 @@ public class Processor {
 		userRepository.save(user);
 		
 		User retrieved = userRepository.findByUsername("rohan");
-		User retrieved1 = userRepository.findByUsername("bugga");
+		User retrieved1 = userService.getUser("rohan");
+		
 
 		// need to poll 1 by 1
 		Future<String> a = stockPriceRetriever.retrieveQuote("VTS");

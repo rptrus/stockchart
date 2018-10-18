@@ -8,8 +8,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.Date;
-import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -20,15 +18,14 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Random;
 
+import org.jfree.chart.ChartColor;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
-import org.jfree.chart.labels.StandardCategoryToolTipGenerator;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.CombinedDomainCategoryPlot;
-import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.chart.renderer.category.StandardBarPainter;
@@ -38,10 +35,10 @@ import org.jfree.data.general.DefaultPieDataset;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
@@ -51,6 +48,7 @@ import com.itextpdf.text.Image;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
+import com.itextpdf.text.html.WebColors;
 import com.itextpdf.text.pdf.DefaultFontMapper;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfGState;
@@ -59,7 +57,6 @@ import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfPageEventHelper;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
-import com.jayway.jsonpath.Predicate;
 import com.rohan.stockapp.dto.StockReportElement;
 
 
@@ -74,7 +71,7 @@ public class ChartConstructionTest {
     Font bfBold12 = FontFactory.getFont("Verdana", 8, Font.BOLD);
     Font bfNormal = FontFactory.getFont("Verdana", 8, Font.NORMAL);
     
-    final String BG =BASE_DIR+File.separatorChar+"moodytrees.jpg";
+    final String BG =BASE_DIR+File.separatorChar+"ferny.jpg";
     
 	
 	@Test
@@ -101,18 +98,19 @@ public class ChartConstructionTest {
 	             document.open();
 	             
 	             // transparency
-	             /*
+	             
 	             PdfContentByte canvas = writer.getDirectContentUnder();
 	             Image bgimage = Image.getInstance(BG);
 	             //image.scaleAbsolute(PageSize.A4.rotate());
-	             bgimage.setAbsolutePosition(0, 0);
+	             bgimage.scaleAbsoluteHeight(850);
+	             bgimage.setAbsolutePosition(0, 0);	             
 	             canvas.saveState();
 	             PdfGState state = new PdfGState();	             
-	             state.setFillOpacity(0.2f);
+	             state.setFillOpacity(0.3f);
 	             canvas.setGState(state);
 	             canvas.addImage(bgimage);
 	             canvas.restoreState();
-	             */
+	             
 	             //
 	             	             
 	             
@@ -151,10 +149,28 @@ public class ChartConstructionTest {
 	             
 	             document.add(paragraph);
 	             
-	            JFreeChart piechart = makePieChart(hackStocks());
-	 			BufferedImage bufferedImagePie = piechart.createBufferedImage(300, 300);
-	 			Image imagePie = Image.getInstance(writer, bufferedImagePie, 1.0f);
-	 			document.add(imagePie);
+//	            JFreeChart piechart = makePieChart(hackStocks());
+//	 			BufferedImage bufferedImagePie = piechart.createBufferedImage(300, 300);
+//	 			Image imagePie = Image.getInstance(writer, bufferedImagePie, 1.0f);
+//	 			document.add(imagePie);
+
+	             PdfContentByte contentByte0 = writer.getDirectContent();
+	             
+		            int width0=450;
+		            int height0 = 250;
+		            int stretchFactor0 = 0, stretchFactor20 =0;            
+		            { stretchFactor0 = 0; stretchFactor20=0; }	            
+		            PdfContentByte contentByteLine0 = writer.getDirectContent();
+		            PdfTemplate templateLine0 = contentByteLine0.createTemplate(width0, height0+stretchFactor0);
+		            Graphics2D graphics2dLine0 = templateLine0.createGraphics(width0, height0+stretchFactor0,
+		                    new DefaultFontMapper());
+		            Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, width0,
+		                    height0+stretchFactor0); // make bigger
+	            makePieChart(hackStocks()).draw(graphics2dLine0, rectangle2dLine0);
+	            graphics2dLine0.dispose();
+	            contentByte0.addTemplate(templateLine0, 38, 300); // positioning on page
+
+	 			
 	             
 	            document.add(paragraph);
 	            	            
@@ -223,93 +239,12 @@ public class ChartConstructionTest {
 	           //insert column headings
 	           // comes from args
 	           insertCell(table, "Code: ", Element.ALIGN_LEFT, 1, bfBold12);
-	           insertCell(table, "Price", Element.ALIGN_RIGHT, 1, bfBold12);
+	           insertCell(table, "Acquired Price", Element.ALIGN_RIGHT, 1, bfBold12);
 	           insertCell(table, "Current Price", Element.ALIGN_RIGHT, 1, bfBold12);
 	           insertCell(table, "Movement (price)", Element.ALIGN_RIGHT, 1, bfBold12);
 	           insertCell(table, "Movement (percent)", Element.ALIGN_RIGHT, 1, bfBold12);
 	           
 	           stockList.stream().filter(StockReportElement::active).forEach(stock->addStock(table, stock));
-	           
-	           // Just setting up the values
-	           /*
-	           BigDecimal domestic = new BigDecimal(re.domesticTxnAmt);
-	           domestic.setScale(2, RoundingMode.HALF_UP);
-	           BigDecimal domesticCount = new BigDecimal(re.domesticTxnCount);
-
-	           BigDecimal intInelligible = new BigDecimal(re.internationalInelligibleTxn);
-	           intInelligible.setScale(2, RoundingMode.HALF_UP);
-	           BigDecimal intInelligibleCount = new BigDecimal(re.internationalInelligibleCount);
-
-	           BigDecimal optout = BigDecimal.ZERO;
-	           optout = optout.add(new BigDecimal(re.dccOptoutCnp));
-	           optout = optout.add(new BigDecimal(re.dccOptoutCp));
-	           optout = optout.setScale(2, RoundingMode.HALF_UP);
-	           BigDecimal optoutCount =BigDecimal.ZERO;
-	           optoutCount = optoutCount.add(new BigDecimal(re.dccOptoutCnpCount));
-	           optoutCount = optoutCount.add(new BigDecimal(re.dccOptoutCpCount));
-	           
-	           BigDecimal optin = BigDecimal.ZERO;
-	           optin = optin.add(new BigDecimal(re.dccOptinCnp));
-	           optin = optin.add(new BigDecimal(re.dccOptinCp));
-	           optin = optin.setScale(2, RoundingMode.HALF_UP);
-	           BigDecimal optinCount =BigDecimal.ZERO;
-	           optinCount = optinCount.add(new BigDecimal(re.dccOptinCnpCount));
-	           optinCount = optinCount.add(new BigDecimal(re.dccOptinCpCount));
-
-	           BigDecimal total = BigDecimal.ZERO;
-	           total = total.add(domestic);
-	           total = total.add(intInelligible);
-	           total = total.add(optout);
-	           total = total.add(optin);
-	           total.setScale(2, RoundingMode.HALF_UP);
-	           if (total.intValue() == 0) total = total.ONE; // RT. divide by zero workaround
-	           
-	           BigDecimal totalCount = BigDecimal.ZERO;
-	           totalCount = totalCount.add(domesticCount);
-	           totalCount = totalCount.add(intInelligibleCount); 
-	           totalCount = totalCount.add(optinCount);
-	           totalCount = totalCount.add(optoutCount);
-	           if (totalCount.intValue() == 0) totalCount = totalCount.ONE;
-	           */
-	           	           
-	           // Just make this a looping function
-	           
-//	           insertCell(table, "Domestic (€)", Element.ALIGN_LEFT, 1, bfNormal);           
-//	           insertCell(table, domestic.setScale(2,RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal); // Amt
-//	           insertCell(table, domesticCount.toString(), Element.ALIGN_RIGHT, 1, bfNormal); // Number
-//	           insertCell(table, new BigDecimal(domestic.floatValue()/total.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by value 
-//	           insertCell(table, new BigDecimal(domesticCount.floatValue()/totalCount.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by number
-	           
-	           
-	           /*
-	           insertCell(table, "International Ineligible ("+daCurrency+")", Element.ALIGN_LEFT, 1, bfNormal);           
-	           //insertCell(table, intInelligible.toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, intInelligible.setScale(2, RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);           
-	           insertCell(table, intInelligibleCount.toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, new BigDecimal(intInelligible.floatValue()/total.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, new BigDecimal(intInelligibleCount.floatValue()/totalCount.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal);
-	           
-	           insertCell(table, "International DCC Opt-in ("+daCurrency+")", Element.ALIGN_LEFT, 1, bfNormal);
-	           //insertCell(table, optin.toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, optin.toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, optinCount.toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, new BigDecimal(optin.floatValue()/total.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, new BigDecimal(optinCount.floatValue()/totalCount.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal);
-	           
-	           insertCell(table, "International DCC Opt-out ("+daCurrency+")", Element.ALIGN_LEFT, 1, bfNormal);
-	           //insertCell(table, optout.toString(), Element.ALIGN_RIGHT, 1, bfNormal);           
-	           insertCell(table, optout.setScale(2, RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);           
-	           insertCell(table, optoutCount.toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, new BigDecimal(optout.floatValue()/total.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, new BigDecimal(optoutCount.floatValue()/totalCount.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal);
-	                                 
-	           insertCell(table, "Total", Element.ALIGN_LEFT, 1, bfBold12);           
-	           //insertCell(table, total.toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, total.setScale(2, RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, totalCount.toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, "100%", Element.ALIGN_RIGHT, 1, bfNormal);
-	           insertCell(table, "100%", Element.ALIGN_RIGHT, 1, bfNormal);
-	           */
 	           
 	           
 	          return table;
@@ -317,11 +252,13 @@ public class ChartConstructionTest {
 	  
 	  private void addStock(PdfPTable table, StockReportElement stock) {
           insertCell(table, stock.getCode(), Element.ALIGN_LEFT, 1, bfNormal);           
-          insertCell(table, stock.geAcquiredPrice().setScale(2,RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-          insertCell(table, stock.geAcquiredPrice().setScale(2,RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-          Float total = 100f; // do it properly later 
-          insertCell(table, new BigDecimal(Float.valueOf(80)/total.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by value 
-          insertCell(table, new BigDecimal(Float.valueOf(65)/total.floatValue()*100).setScale(2,RoundingMode.HALF_UP).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by number		  
+          insertCell(table, stock.getAcquiredPrice().setScale(2,RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);
+          insertCell(table, stock.getCurrentPrice().setScale(2,RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);
+          Float total = 100f; 
+          insertCell(table, stock.getCurrentPrice().subtract(stock.getAcquiredPrice()).setScale(2, RoundingMode.HALF_EVEN)+"", Element.ALIGN_RIGHT, 1, bfNormal); // % by value 
+          insertCell(table, (stock.getCurrentPrice().divide(stock.getAcquiredPrice(),2,RoundingMode.HALF_EVEN)
+    				.subtract(BigDecimal.ONE))
+    				.multiply(BigDecimal.TEN.pow(2)).setScale(0).toString().toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by number		  
 	  }
 
 	    private JFreeChart createCombinedChartCardholderCurrency(int type, List<StockReportElement> stockList) { //RT
@@ -407,7 +344,8 @@ public class ChartConstructionTest {
 	              plot,
 	              true
 	          );
-	      //chart.setBackgroundPaint(Color.WHITE);
+	      //chart.setBackgroundPaint(Color.WHITE);	      
+	      //chart.setBackgroundPaint(new ChartColor(124, 146, 138));
 	        
 	        return chart;
 	  }
@@ -436,7 +374,7 @@ public class ChartConstructionTest {
 	          for (StockReportElement aStockReportElement: stockList) {
 	        	  result.addValue(
 	        			  aStockReportElement.getCurrentPrice()
-	        					  	.divide(aStockReportElement.geAcquiredPrice(),2,RoundingMode.HALF_EVEN)
+	        					  	.divide(aStockReportElement.getAcquiredPrice(),2,RoundingMode.HALF_EVEN)
 	        						.subtract(BigDecimal.ONE)
 	        						.multiply(BigDecimal.TEN.pow(2)).setScale(0).doubleValue(), 
 	        			  rowKey, 
@@ -459,7 +397,7 @@ public class ChartConstructionTest {
 	          result.addValue(Double.valueOf("35.5"), "Stock Code", "VAS");
 	          */
 	          
-	          final String rowKey = "Stock Code";
+	          final String rowKey = "Equity held";
 	          
 	          for (StockReportElement aStockReportElement: stockList) {
 	        	  result.addValue(
@@ -503,7 +441,11 @@ public class ChartConstructionTest {
 	         true,             // include legend
 	         true,
 	         false);
-	         
+	        
+	      //chart.setBackgroundPaint(ChartColor.LIGHT_GRAY);
+	      chart.setBackgroundPaint(new ChartColor(224, 224, 224));
+	      //chart.setBackgroundPaint(new ChartColor(124, 146, 138));
+	      
 	      int width = 640;   /* Width of the image */
 	      int height = 480;  /* Height of the image */
 	      
@@ -536,6 +478,8 @@ public class ChartConstructionTest {
           if(text.trim().equalsIgnoreCase("")){
            cell.setMinimumHeight(10f);
           }
+          cell.setBackgroundColor(BaseColor.LIGHT_GRAY);
+          cell.setBackgroundColor(WebColors.getRGBColor("#d6f5d6"));
           //add the call to the table
           table.addCell(cell);
            

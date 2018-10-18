@@ -51,7 +51,7 @@ public abstract class BaseReportElement {
 
 
 
-	public BigDecimal geAcquiredPrice() {
+	public BigDecimal getAcquiredPrice() {
 		return acquiredPrice;
 	}
 
