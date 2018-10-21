@@ -2,34 +2,40 @@ package com.rohan.stockapp.service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rohan.stockapp.entity.Holding;
 import com.rohan.stockapp.entity.Quote;
 import com.rohan.stockapp.entity.User;
-import com.rohan.stockapp.repository.HoldingRepository;
+import com.rohan.stockapp.json.StockAdd;
 import com.rohan.stockapp.repository.UserRepository;
 
-@Component
+@RestController
 public class Processor {
+	
+	@Autowired
+	ObjectMapper objectmapper;
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -46,14 +52,26 @@ public class Processor {
 	@Autowired
 	private UserService userService;
 	
-	@PostConstruct
+	public void addStock(String json) throws JsonParseException, JsonMappingException, IOException {
+		StockAdd stockAdd = objectmapper.readValue(json, StockAdd.class);
+		System.out.println(stockAdd);
+		// Add it to the Database
+		// Process to the ChartConstruct
+		constructChart(stockAdd);
+	}
+	
+	private void constructChart(StockAdd stockAdd) {
+		chart.makePDFChart(stockAdd);
+	}
+	
+	//@PostConstruct
 	public void testIt() throws URISyntaxException, IOException, InterruptedException, ExecutionException {
 		
-		chart.makePDFChart();
+		chart.makePDFChart(null);
 		System.out.println("Done with chart!");
 		
-		List nudge = jdbcTemplate.queryForList("select * from holding");
-		System.out.println(nudge);
+		List<Map<String, Object>> holdingList = jdbcTemplate.queryForList("select * from holding");
+		System.out.println(holdingList);
 		
 		User user = new User();
 		user.setBio("The founding user");

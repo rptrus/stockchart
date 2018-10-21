@@ -187,7 +187,7 @@ public class ChartConstructionTest {
 	            Rectangle2D rectangle2dLine = new Rectangle2D.Double(0, 0, width,
 	                    height+stretchFactor); // make bigger
 
-	            createCombinedChartCardholderCurrency(2, hackStocks()).draw(graphics2dLine, rectangle2dLine);
+	            createPerformanceGraph(2, hackStocks()).draw(graphics2dLine, rectangle2dLine);
 	             
 	            graphics2dLine.dispose();
 	            contentByte.addTemplate(templateLine, 38, 38); // positioning on page
@@ -261,7 +261,7 @@ public class ChartConstructionTest {
     				.multiply(BigDecimal.TEN.pow(2)).setScale(0).toString().toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by number		  
 	  }
 
-	    private JFreeChart createCombinedChartCardholderCurrency(int type, List<StockReportElement> stockList) { //RT
+	    private JFreeChart createPerformanceGraph(int type, List<StockReportElement> stockList) { //RT
 	        
 	        System.out.println("TYPE: "+type);
 
