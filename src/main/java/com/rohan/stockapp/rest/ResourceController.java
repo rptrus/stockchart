@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -36,6 +37,13 @@ public class ResourceController {
 		System.out.println(json);
 		return new ResponseEntity<String>("{ \"status\" : \"Work in progress!\" }", HttpStatus.OK);
 	}
+	
+	@PostMapping(value="/addmulti", consumes = "application/json", produces = "application/json")
+	public ResponseEntity<String> addmulti(@RequestHeader("X-username") String username, @RequestHeader("X-password") String password, @RequestBody String json) throws JsonParseException, JsonMappingException, IOException {
+		processor.addStockMulti(json);
+		System.out.println(json);
+		return new ResponseEntity<String>("{ \"status\" : \"Work in progress!\" }", HttpStatus.OK);
+	}
 
 	@DeleteMapping(value="/delete")
 	public ResponseEntity<String> delete(@RequestBody String json) {
@@ -52,3 +60,24 @@ public class ResourceController {
 	}
 
 }
+
+
+// multi
+
+/*
+{
+"stocks" : [
+	{
+	"stock":"WBC",
+	"dateAdded" : "2018-10-20T13:23:43.533Z",
+	"price" : 32.44
+	},
+	{
+	"stock":"VAS",
+	"dateAdded" : "2018-10-20T13:23:43.533Z",
+	"price" : 72.43
+	},
+	]
+	"comments" : "kecewa"
+}
+*/

@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.apache.commons.lang3.StringUtils;
@@ -56,7 +57,9 @@ import com.itextpdf.text.pdf.PdfPageEventHelper;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.rohan.stockapp.dto.StockReportElement;
+import com.rohan.stockapp.json.Stock;
 import com.rohan.stockapp.json.StockAdd;
+import com.rohan.stockapp.json.StockSet;
 
 @Component
 public class ChartConstruction {
@@ -68,8 +71,11 @@ public class ChartConstruction {
     
     final String BG =BASE_DIR+File.separatorChar+"ferny.jpg";
 
+    public void makePDFChart(StockSet stockSet) {
+    	makePDFChart(stockSet, null);
+    }
 	
-	public void makePDFChart(StockAdd stock) {
+	public void makePDFChart(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
 		  String fileName = BASE_DIR+File.separatorChar+"MyChart.pdf";
 		  
 		  PdfWriter writer = null;
@@ -139,7 +145,7 @@ public class ChartConstruction {
 	                document.add(paragraph);
 
 	                         
-	             document.add(stockStatsTable(hackStocks()));
+	             document.add(stockStatsTable(/*hackStocks()*/addStocksMulti(stockSet, latestPrices))); // TODO, read previous from DB and then add 'stock'
 	             
 	             document.add(paragraph);
 	             
@@ -160,7 +166,7 @@ public class ChartConstruction {
 		                    new DefaultFontMapper());
 		            Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, width0,
 		                    height0+stretchFactor0); // make bigger
-	            makePieChart(hackStocks()).draw(graphics2dLine0, rectangle2dLine0);
+	            makePieChart(/*hackStocks()*/addStocksMulti(stockSet, latestPrices)).draw(graphics2dLine0, rectangle2dLine0);
 	            graphics2dLine0.dispose();
 	            contentByte0.addTemplate(templateLine0, 38, 300); // positioning on page
 
@@ -181,7 +187,7 @@ public class ChartConstruction {
 	            Rectangle2D rectangle2dLine = new Rectangle2D.Double(0, 0, width,
 	                    height+stretchFactor); // make bigger
 
-	            createPerformanceGraph(2, hackStocks()).draw(graphics2dLine, rectangle2dLine);
+	            createPerformanceGraph(2, /*hackStocks()*/addStocksMulti(stockSet, latestPrices)).draw(graphics2dLine, rectangle2dLine);
 	             
 	            graphics2dLine.dispose();
 	            contentByte.addTemplate(templateLine, 38, 38); // positioning on page
@@ -197,7 +203,7 @@ public class ChartConstruction {
 	        	
 	        }
 		  
-	    }
+	}
 	
 	private JFreeChart createPerformanceGraph(int type, List<StockReportElement> stockList) { //RT
         
@@ -241,7 +247,7 @@ public class ChartConstruction {
         //renderer1.setSeriesPaint(1, new Color(0xf5f5f5)); // light gray
 
         
-        final CategoryDataset dataset2 = createDatasetCHCAmount(type, hackStocks());              
+        final CategoryDataset dataset2 = createDatasetCHCAmount(type, /*hackStocks()*/stockList);
         final NumberAxis rangeAxis2 = new NumberAxis("Holding Amt");             
         rangeAxis2.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
         final BarRenderer renderer2 = new BarRenderer();
@@ -443,7 +449,7 @@ public class ChartConstruction {
     				.multiply(BigDecimal.TEN.pow(2)).setScale(0).toString().toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by number		  
 	  }
 	  
-	  private List<StockReportElement> addStock(StockAdd stockAdd) {
+	  private List<StockReportElement> addStocks(StockAdd stockAdd) {
 		  List<StockReportElement> stocks = new ArrayList<>(); // TODO - read existing holdings to add. For now, just create single array
 		  StockReportElement stok = new StockReportElement();
 		  int yyyy = Integer.valueOf(StringUtils.substring(stockAdd.getDateAdded(), 0,4)); 
@@ -454,8 +460,24 @@ public class ChartConstruction {
 		  stok = new StockReportElement(LocalDate.of(yyyy, mm, dd), "VAS", value, new BigDecimal(72.10)); // 4th param get from regex data
 		  return Collections.singletonList(stok);
 	  }
+	  
+	  private List<StockReportElement> addStocksMulti(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
+		  List<Stock> listOfStocks = stockSet.getStocks();		  
+		  List<StockReportElement> stocks = new ArrayList<>(); // TODO - read existing holdings to add. For now, just create single array
+		  for (Stock stock: listOfStocks) {
+			  StockReportElement stok = new StockReportElement();
+			  int yyyy = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 0,4)); 
+			  int mm = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 5,7));
+			  int dd = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 8,10)); // add more error checking later
+			  BigDecimal buyPrice = new BigDecimal(stock.getPrice(),
+				        new MathContext(2, RoundingMode.HALF_EVEN));
+			  stok = new StockReportElement(LocalDate.of(yyyy, mm, dd), stock.getStock(), buyPrice, latestPrices.get(stock.getStock())); // 4th param get from regex data
+			  stocks.add(stok);
+		  }
+		  return stocks;
+	  }
 
-	  private List hackStocks() {
+	  private List<StockReportElement> hackStocks() {
 		  List<StockReportElement> stocks = new ArrayList<>();
 		  StockReportElement[] stok = new StockReportElement[4];
 		  stok[0] = new StockReportElement(LocalDate.of(2014, Month.JANUARY, 1), "VAS", new BigDecimal(68.00), new BigDecimal(72.10));

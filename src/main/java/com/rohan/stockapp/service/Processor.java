@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import com.rohan.stockapp.entity.Holding;
 import com.rohan.stockapp.entity.Quote;
 import com.rohan.stockapp.entity.User;
 import com.rohan.stockapp.json.StockAdd;
+import com.rohan.stockapp.json.StockSet;
 import com.rohan.stockapp.repository.UserRepository;
 
 @RestController
@@ -57,11 +59,25 @@ public class Processor {
 		System.out.println(stockAdd);
 		// Add it to the Database
 		// Process to the ChartConstruct
-		constructChart(stockAdd);
+//		constructChart(stockAdd);
 	}
 	
-	private void constructChart(StockAdd stockAdd) {
-		chart.makePDFChart(stockAdd);
+	public void addStockMulti(String json) throws JsonParseException, JsonMappingException, IOException {
+		StockSet stockSet = objectmapper.readValue(json, StockSet.class);
+		System.out.println(stockSet);
+		// Add it to the Database
+		// TODO
+		// Obtain the latest prices
+		Map<String, BigDecimal> latestPrices = new HashMap<String, BigDecimal>();
+		latestPrices.put("WBC", new BigDecimal(34.01));
+		latestPrices.put("VAS", new BigDecimal(77.12));
+		// TODO. Mock it up for now
+		// Process to the ChartConstruct
+		constructChart(stockSet, latestPrices);
+	}
+	
+	private void constructChart(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
+		chart.makePDFChart(stockSet, latestPrices);
 	}
 	
 	//@PostConstruct
