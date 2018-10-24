@@ -2,6 +2,10 @@ package com.rohan.stockapp.rest;
 
 import java.io.IOException;
 
+import javax.annotation.PostConstruct;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,10 +21,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.mysql.jdbc.log.Log;
 import com.rohan.stockapp.service.Processor;
 
 @RestController
 public class ResourceController {
+	
+	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	
 	@Autowired
 	Processor processor;
@@ -31,6 +38,7 @@ public class ResourceController {
 		return new ResponseEntity<String>("{ \"status\" : \"Work in progress!\" }", HttpStatus.OK);
 	}
 	
+	@Deprecated
 	@PostMapping(value="/add", consumes = "application/json", produces = "application/json")
 	public ResponseEntity<String> add(@RequestBody String json) throws JsonParseException, JsonMappingException, IOException {
 		processor.addStock(json);
@@ -40,23 +48,36 @@ public class ResourceController {
 	
 	@PostMapping(value="/addmulti", consumes = "application/json", produces = "application/json")
 	public ResponseEntity<String> addmulti(@RequestHeader("X-username") String username, @RequestHeader("X-password") String password, @RequestBody String json) throws JsonParseException, JsonMappingException, IOException {
-		processor.addStockMulti(json);
+		String arg = "\"Work in Progress!\"";
+		if (processor.checkIfUserExists(username)) {
+			logger.error("The user already exists - must use PUT");
+			arg = "User already Exists - send a PUT request instead";
+			// TODO return a custom error JSON
+		}
+		else
+			processor.addStockMulti(json, username, password);
 		System.out.println(json);
-		return new ResponseEntity<String>("{ \"status\" : \"Work in progress!\" }", HttpStatus.OK);
+		return new ResponseEntity<String>(String.format("{ \"status\" : \"%s\" }",arg), HttpStatus.OK);
 	}
 
-	@DeleteMapping(value="/delete")
+	@PutMapping(value="/addmulti", consumes = "application/json", produces = "application/json")
+	public ResponseEntity<String> modify(@RequestHeader("X-username") String username, @RequestHeader("X-password") String password, @RequestBody String json) throws JsonParseException, JsonMappingException, IOException {
+		processor.addStockMulti(json, username, password);
+		System.out.println(json);
+		return new ResponseEntity<String>("{ \"status\" : \"Work in progress!\" }", HttpStatus.OK);
+		
+	}
+	
+	@DeleteMapping(value="/delete", consumes = "application/json", produces = "application/json")
 	public ResponseEntity<String> delete(@RequestBody String json) {
 		System.out.println(json);
 		return new ResponseEntity<String>("{ \"status\" : \"Work in progress!\" }", HttpStatus.OK);
 		
 	}
 	
-	@PutMapping(value="/modify")
-	public ResponseEntity<String> modify(@RequestBody String json) {
-		System.out.println(json);
-		return new ResponseEntity<String>("{ \"status\" : \"Work in progress!\" }", HttpStatus.OK);
-		
+	@PostConstruct
+	public void filler() {
+		processor.fillTheDatabase();
 	}
 
 }

@@ -2,6 +2,7 @@ package com.rohan.stockapp.service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URISyntaxException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
@@ -62,30 +64,36 @@ public class Processor {
 //		constructChart(stockAdd);
 	}
 	
-	public void addStockMulti(String json) throws JsonParseException, JsonMappingException, IOException {
+	public void addStockMulti(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException {
 		StockSet stockSet = objectmapper.readValue(json, StockSet.class);
 		System.out.println(stockSet);
+		// retrieve the user details to get existing allotment
+		//fillTheDatabase(); // fill up with dummy data. look at a way to do this on startup in Spring (must be a way!)
+		Set<Holding> userHoldings = userService.getUserHoldings(userService.getUser(username)); // A
+		userHoldings.size();
 		// Add it to the Database
-		// TODO
+		// TODO - find the codes in the JSON that aren't in the DB
+		stockSet.getStocks(); // B
+		// filter out the things that don't match, leaving the things that do match O(N^2) but OK for small porfolios
+		List myNewList = stockSet.getStocks().stream().filter(jStock-> userHoldings.stream().noneMatch(dbStock -> dbStock.getCode().equals(jStock.getStock()))  ).collect(Collectors.toList());
 		// Obtain the latest prices
 		Map<String, BigDecimal> latestPrices = new HashMap<String, BigDecimal>();
-		latestPrices.put("WBC", new BigDecimal(34.01));
-		latestPrices.put("VAS", new BigDecimal(77.12));
+		latestPrices.put("WBC", new BigDecimal(34.01).setScale(2, RoundingMode.HALF_EVEN));
+		latestPrices.put("VAS", new BigDecimal(77.12).setScale(2, RoundingMode.HALF_EVEN));
 		// TODO. Mock it up for now
 		// Process to the ChartConstruct
 		constructChart(stockSet, latestPrices);
+	}
+	
+	public boolean checkIfUserExists(String username) {
+		return userService.getUser(username) != null;
 	}
 	
 	private void constructChart(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
 		chart.makePDFChart(stockSet, latestPrices);
 	}
 	
-	//@PostConstruct
-	public void testIt() throws URISyntaxException, IOException, InterruptedException, ExecutionException {
-		
-		chart.makePDFChart(null);
-		System.out.println("Done with chart!");
-		
+	public void fillTheDatabase() {
 		List<Map<String, Object>> holdingList = jdbcTemplate.queryForList("select * from holding");
 		System.out.println(holdingList);
 		
@@ -116,7 +124,16 @@ public class Processor {
 		user.setHoldings(stockSet);
 		
 		userRepository.save(user);
+	}
+	
+	//@PostConstruct
+	public void testIt() throws URISyntaxException, IOException, InterruptedException, ExecutionException {
 		
+		chart.makePDFChart(null);
+		System.out.println("Done with chart!");
+		
+		fillTheDatabase();
+
 		User retrieved = userRepository.findByUsername("rohan");
 		User retrieved1 = userService.getUser("rohan");
 		
