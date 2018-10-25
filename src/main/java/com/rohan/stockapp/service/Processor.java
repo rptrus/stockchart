@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URISyntaxException;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,8 +34,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rohan.stockapp.entity.Holding;
 import com.rohan.stockapp.entity.Quote;
 import com.rohan.stockapp.entity.User;
+import com.rohan.stockapp.json.Stock;
 import com.rohan.stockapp.json.StockAdd;
 import com.rohan.stockapp.json.StockSet;
+import com.rohan.stockapp.repository.HoldingRepository;
 import com.rohan.stockapp.repository.UserRepository;
 
 @RestController
@@ -56,6 +61,9 @@ public class Processor {
 	@Autowired
 	private UserService userService;
 	
+	@Autowired
+	private HoldingRepository holdingRepository;
+	
 	public void addStock(String json) throws JsonParseException, JsonMappingException, IOException {
 		StockAdd stockAdd = objectmapper.readValue(json, StockAdd.class);
 		System.out.println(stockAdd);
@@ -69,13 +77,34 @@ public class Processor {
 		System.out.println(stockSet);
 		// retrieve the user details to get existing allotment
 		//fillTheDatabase(); // fill up with dummy data. look at a way to do this on startup in Spring (must be a way!)
-		Set<Holding> userHoldings = userService.getUserHoldings(userService.getUser(username)); // A
+		User theUser = userService.getUser(username);
+		Set<Holding> userHoldings = userService.getUserHoldings(theUser); // A
 		userHoldings.size();
 		// Add it to the Database
 		// TODO - find the codes in the JSON that aren't in the DB
 		stockSet.getStocks(); // B
-		// filter out the things that don't match, leaving the things that do match O(N^2) but OK for small porfolios
-		List myNewList = stockSet.getStocks().stream().filter(jStock-> userHoldings.stream().noneMatch(dbStock -> dbStock.getCode().equals(jStock.getStock()))  ).collect(Collectors.toList());
+		// filter out the things that don't match, leaving the things that are left=new O(N^2) but OK for small porfolios
+		// Next, do the other way, so that we can delete things out too
+		List<Stock> myNewList = stockSet.getStocks().stream().filter(jStock-> userHoldings.stream().noneMatch(dbStock -> dbStock.getCode().equals(jStock.getStock()))  ).collect(Collectors.toList());
+		List<Holding> myRemList = userHoldings.stream().filter(jStock-> stockSet.getStocks().stream().noneMatch(dbStock -> dbStock.getStock().equals(jStock.getCode()))  ).collect(Collectors.toList());
+		for (Stock newStock : myNewList) {
+			Instant addDate = Instant.parse(newStock.getDateAdded());
+			LocalDateTime newDate = LocalDateTime.ofInstant(addDate, ZoneId.systemDefault());
+			/*
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-ddTHH:mm");
+			LocalDateTime formatDateTime = LocalDateTime.parse(newStock.getDateAdded(), formatter);
+			*/
+			
+			Holding newHolding = new Holding();
+			newHolding.setCode(newStock.getStock());
+			newHolding.setDateAcquired(newDate);
+			newHolding.setPrice(new BigDecimal(newStock.getPrice()));
+			newHolding.setUser(theUser);
+			//newHolding.setQuote(quote);
+			userHoldings.add(newHolding);
+			//theUser.setHoldings(userHoldings);			
+			holdingRepository.save(newHolding);
+		}
 		// Obtain the latest prices
 		Map<String, BigDecimal> latestPrices = new HashMap<String, BigDecimal>();
 		latestPrices.put("WBC", new BigDecimal(34.01).setScale(2, RoundingMode.HALF_EVEN));
