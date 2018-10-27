@@ -40,6 +40,8 @@ import com.rohan.stockapp.json.StockSet;
 import com.rohan.stockapp.repository.HoldingRepository;
 import com.rohan.stockapp.repository.UserRepository;
 
+import javassist.bytecode.Descriptor.Iterator;
+
 @RestController
 public class Processor {
 	
@@ -104,6 +106,26 @@ public class Processor {
 			userHoldings.add(newHolding);
 			//theUser.setHoldings(userHoldings);			
 			holdingRepository.save(newHolding);
+		}
+		for (Holding deleteStock : myRemList) {			 
+			java.util.Iterator<Holding> iter = userHoldings.iterator();
+			while (iter.hasNext()) {
+				Holding holding = iter.next();
+				if (holding.getCode().equals(deleteStock.getCode())) {
+					System.out.println("We have a match - now we can delete "+holding.getCode());
+					userHoldings.remove(holding);
+					holdingRepository.save(holding);
+				}
+			}
+			
+			/*
+			for (Holding holding: userHoldings) {
+				if (holding.getCode().equals(deleteStock.getCode())) {
+					System.out.println("We have a match - now we can delete "+holding.getCode());
+					userHoldings.remove(holding);
+				}
+			}
+			*/
 		}
 		// Obtain the latest prices
 		Map<String, BigDecimal> latestPrices = new HashMap<String, BigDecimal>();
