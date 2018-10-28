@@ -37,9 +37,12 @@ import org.jfree.chart.renderer.category.StandardBarPainter;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.Font.FontFamily;
@@ -64,6 +67,12 @@ import com.rohan.stockapp.json.StockSet;
 @Component
 public class ChartConstruction {
 	
+	@Autowired
+	PdfWriter writer;
+	
+	@Autowired
+	Document document;
+	
 	final String BASE_DIR=File.separatorChar+"output"; // can have this as a program argument
 	
     Font bfBold12 = FontFactory.getFont("Verdana", 8, Font.BOLD);
@@ -78,24 +87,10 @@ public class ChartConstruction {
 	public void makePDFChart(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
 		  String fileName = BASE_DIR+File.separatorChar+"MyChart.pdf";
 		  
-		  PdfWriter writer = null;
-		  
-		  // step 1
-	        Document document = new Document(PageSize.A4, 36, 36, 54, 36);
 	        try {
 	           
-	            // step 2
-	            writer = PdfWriter.getInstance(document, new FileOutputStream(
-	                    fileName));
-	            
-	            Paragraph paragraph = new Paragraph();
-	            addEmptyLine(paragraph, 1);
-	            
-	             //TableHeader1 event = new TableHeader1(); // TODO stamp each page
-	             
-	             //writer.setPageEvent(event);
-	             
 	             document.open();
+	             //addEmptyLine(document,  2);
 	             
 	             // transparency
 	             
@@ -114,11 +109,10 @@ public class ChartConstruction {
 	             //
 	             	             
 	             
-	             document.add(paragraph);
+	             addEmptyLine(document,  1);
 	             //document.add(merchantDetailTable(re, reportType));
 	             //document.add(table1(MerchantNo));           
 	             
-	             document.add(paragraph);
 	             
 	                SimpleDateFormat format1 = new SimpleDateFormat("yyyymmdd");
 	                SimpleDateFormat format2 = new SimpleDateFormat("dd MMM yyyy");
@@ -133,21 +127,19 @@ public class ChartConstruction {
 	                //Date edate = format1.parse(endDateArg);	                
 	                
 	                
-	                document.add(paragraph);
 	                
 	           //insert column headings
 	           // comes from args
 	                Paragraph p;
 	                Font bold = new Font(FontFamily.HELVETICA, 12, Font.BOLD);
-	                p = new Paragraph(/*format2.format(sdate) + " to " + */"Report Date "+format2.format(edate), bold );
+	                p = new Paragraph(/*format2.format(sdate) + " to " + */"Report Date:    "+format2.format(edate), bold );
 	                p.setAlignment(Element.ALIGN_JUSTIFIED);
 	                document.add(p);
-	                document.add(paragraph);
-
+	                addEmptyLine(document, 2);
 	                         
 	             document.add(stockStatsTable(/*hackStocks()*/addStocksMulti(stockSet, latestPrices))); // TODO, read previous from DB and then add 'stock'
 	             
-	             document.add(paragraph);
+	             addEmptyLine(document,  1);
 	             
 //	            JFreeChart piechart = makePieChart(hackStocks());
 //	 			BufferedImage bufferedImagePie = piechart.createBufferedImage(300, 300);
@@ -172,7 +164,7 @@ public class ChartConstruction {
 
 	 			
 	             
-	            document.add(paragraph);
+	            addEmptyLine(document,  4);
 	            	            
 	            PdfContentByte contentByte = writer.getDirectContent();
 	 			
@@ -193,7 +185,7 @@ public class ChartConstruction {
 	            contentByte.addTemplate(templateLine, 38, 38); // positioning on page
 	            
 	             
-	            document.add(paragraph);
+	            addEmptyLine(document,  1);
 
 	             
 	            document.close();
@@ -426,11 +418,11 @@ public class ChartConstruction {
 	                
 	           //insert column headings
 	           // comes from args
-	           insertCell(table, "Code: ", Element.ALIGN_LEFT, 1, bfBold12);
-	           insertCell(table, "Acquired Price", Element.ALIGN_RIGHT, 1, bfBold12);
-	           insertCell(table, "Current Price", Element.ALIGN_RIGHT, 1, bfBold12);
-	           insertCell(table, "Movement (price)", Element.ALIGN_RIGHT, 1, bfBold12);
-	           insertCell(table, "Movement (percent)", Element.ALIGN_RIGHT, 1, bfBold12);
+	           insertCell(table, "Code: ", Element.ALIGN_LEFT, 1, bfBold12, Boolean.TRUE);
+	           insertCell(table, "Acquired Price", Element.ALIGN_RIGHT, 1, bfBold12, Boolean.TRUE);
+	           insertCell(table, "Current Price", Element.ALIGN_RIGHT, 1, bfBold12, Boolean.TRUE);
+	           insertCell(table, "Movement (price)", Element.ALIGN_RIGHT, 1, bfBold12, Boolean.TRUE);
+	           insertCell(table, "Movement (percent)", Element.ALIGN_RIGHT, 1, bfBold12, Boolean.TRUE);
 	           
 	           stockList.stream().filter(StockReportElement::active).forEach(stock->addStock(table, stock));
 	           
@@ -469,8 +461,7 @@ public class ChartConstruction {
 			  int yyyy = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 0,4)); 
 			  int mm = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 5,7));
 			  int dd = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 8,10)); // add more error checking later
-			  BigDecimal buyPrice = new BigDecimal(stock.getPrice(),
-				        new MathContext(2, RoundingMode.HALF_EVEN));
+			  BigDecimal buyPrice = new BigDecimal(stock.getPrice()).setScale(2, RoundingMode.HALF_EVEN);
 			  stok = new StockReportElement(LocalDate.of(yyyy, mm, dd), stock.getStock(), buyPrice, latestPrices.get(stock.getStock())); // 4th param get from regex data
 			  stocks.add(stok);
 		  }
@@ -491,8 +482,11 @@ public class ChartConstruction {
 	  
 	  // HELPER FUNCTIONS
 	  
-	  private static void insertCell(PdfPTable table, String text, int align, int colspan, Font font){
-          
+	  private static void insertCell(PdfPTable table, String text, int align, int colspan, Font font) {
+		  insertCell(table, text, align, colspan, font, false);
+	  }
+	  
+	  private static void insertCell(PdfPTable table, String text, int align, int colspan, Font font, boolean header){
           //create a new cell with the specified Text and Font
           PdfPCell cell = new PdfPCell(new Phrase(text.trim(), font));
           //set the cell alignment
@@ -503,14 +497,18 @@ public class ChartConstruction {
           if(text.trim().equalsIgnoreCase("")){
            cell.setMinimumHeight(10f);
           }
+          cell.setBackgroundColor(new BaseColor(249, 255, 230,0));
+          if (header) cell.setBackgroundColor(new BaseColor(237, 255, 179,0)); 
           //add the call to the table
           table.addCell(cell);
            
          }
 	
-	  private static void addEmptyLine(Paragraph paragraph, int number) {
+	  private static void addEmptyLine(Document document, int number) throws DocumentException {
+		  Paragraph paragraph = new Paragraph();
 	        for (int i = 0; i < number; i++) {
 	          paragraph.add(new Paragraph(" "));
+	          document.add(paragraph);
 	        }
 	    }
 	  

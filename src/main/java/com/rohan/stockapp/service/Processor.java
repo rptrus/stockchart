@@ -7,7 +7,6 @@ import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -17,15 +16,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
+import javax.transaction.Transactional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -40,10 +36,10 @@ import com.rohan.stockapp.json.StockSet;
 import com.rohan.stockapp.repository.HoldingRepository;
 import com.rohan.stockapp.repository.UserRepository;
 
-import javassist.bytecode.Descriptor.Iterator;
-
 @RestController
 public class Processor {
+	
+	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	
 	@Autowired
 	ObjectMapper objectmapper;
@@ -116,16 +112,7 @@ public class Processor {
 					userHoldings.remove(holding);
 					holdingRepository.save(holding);
 				}
-			}
-			
-			/*
-			for (Holding holding: userHoldings) {
-				if (holding.getCode().equals(deleteStock.getCode())) {
-					System.out.println("We have a match - now we can delete "+holding.getCode());
-					userHoldings.remove(holding);
-				}
-			}
-			*/
+			}			
 		}
 		// Obtain the latest prices
 		Map<String, BigDecimal> latestPrices = new HashMap<String, BigDecimal>();
@@ -141,9 +128,20 @@ public class Processor {
 	}
 	
 	private void constructChart(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
+		synchroniseCurrentPrices(stockSet, latestPrices);
 		chart.makePDFChart(stockSet, latestPrices);
 	}
 	
+	// If we don't have a latest price, then what we will do is set it to the current price and flag an alert
+	private void synchroniseCurrentPrices(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
+			for (Stock stock :stockSet.getStocks()) {
+				if (latestPrices.get(stock.getStock()) == null) {
+					logger.error("Missing 'Latest Price' of {}",stock.getStock());
+					latestPrices.put(stock.getStock(), BigDecimal.valueOf(stock.getPrice()).setScale(2, RoundingMode.HALF_EVEN));
+				}
+			}
+	}
+
 	public void fillTheDatabase() {
 		List<Map<String, Object>> holdingList = jdbcTemplate.queryForList("select * from holding");
 		System.out.println(holdingList);
@@ -218,6 +216,25 @@ public class Processor {
 		
 		System.out.println("done!");
 		
+	}
+
+	@Transactional
+	public void deleteStock(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException {
+		User theUser = userService.getUser(username); //DB
+		Set<Holding> userHoldings = userService.getUserHoldings(theUser);
+		int size = userHoldings.size();
+		if (size >= 1) { // DB must have at least one
+			
+			StockSet stockSet = objectmapper.readValue(json, StockSet.class);
+			Stock stock = stockSet.getStocks().get(0); // we only have one
+			Holding holding2Delete = holdingRepository.findByCode(stock.getStock());
+			//holdingRepository.delete(holding2Delete);
+			if (userHoldings.remove(holding2Delete))
+				holdingRepository.save(holding2Delete);
+			System.out.println("Done");
+		} else if (size == 0) {
+			logger.error("Nothing to delete!");
+		}
 	}
 
 }

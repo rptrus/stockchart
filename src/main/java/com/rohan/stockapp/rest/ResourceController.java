@@ -69,7 +69,8 @@ public class ResourceController {
 	}
 	
 	@DeleteMapping(value="/delete", consumes = "application/json", produces = "application/json")
-	public ResponseEntity<String> delete(@RequestBody String json) {
+	public ResponseEntity<String> delete(@RequestHeader("X-username") String username, @RequestHeader("X-password") String password, @RequestBody String json) throws JsonParseException, JsonMappingException, IOException {
+		processor.deleteStock(json, username, password);
 		System.out.println(json);
 		return new ResponseEntity<String>("{ \"status\" : \"Work in progress!\" }", HttpStatus.OK);
 		

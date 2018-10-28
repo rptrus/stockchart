@@ -19,8 +19,8 @@ public abstract class BaseReportElement {
 		super();
 		this.dateAcquired = dateAcquired;
 		this.code = code;
-		this.acquiredPrice = Utils.rectify(acquiredPrice,2);
-		this.currentPrice = Utils.rectify(nowPrice,2);
+		this.acquiredPrice = acquiredPrice != null ? Utils.rectify(acquiredPrice,2) : acquiredPrice;
+		this.currentPrice = currentPrice!=null ? Utils.rectify(nowPrice,2) : nowPrice;
 	}
 
 

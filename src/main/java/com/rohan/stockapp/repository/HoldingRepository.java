@@ -12,4 +12,5 @@ import com.rohan.stockapp.entity.Holding;
 @Transactional
 public interface HoldingRepository extends JpaRepository<Holding,Long>{
 
+	Holding findByCode(String code);
 }
