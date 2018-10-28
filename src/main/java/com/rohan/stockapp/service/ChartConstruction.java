@@ -38,6 +38,7 @@ import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.itextpdf.text.BaseColor;
@@ -67,11 +68,11 @@ import com.rohan.stockapp.json.StockSet;
 @Component
 public class ChartConstruction {
 	
-	@Autowired
-	PdfWriter writer;
+	//@Autowired
+	//PdfWriter writer;
 	
-	@Autowired
-	Document document;
+	//@Autowired
+	//Document document;
 	
 	final String BASE_DIR=File.separatorChar+"output"; // can have this as a program argument
 	
@@ -87,10 +88,22 @@ public class ChartConstruction {
 	public void makePDFChart(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
 		  String fileName = BASE_DIR+File.separatorChar+"MyChart.pdf";
 		  
-	        try {
+		  PdfWriter writer = null;
+		  
+	        	 // step 1
+		        Document document = new Document(PageSize.A4, 36, 36, 54, 36);
+		        try {
+		           
+		            // step 2
+		            writer = PdfWriter.getInstance(document, new FileOutputStream(
+		                    fileName));
+		            
+		            Paragraph paragraph = new Paragraph();
 	           
-	             document.open();
+
 	             //addEmptyLine(document,  2);
+		            
+		            document.open();
 	             
 	             // transparency
 	             
@@ -155,7 +168,7 @@ public class ChartConstruction {
 		            PdfContentByte contentByteLine0 = writer.getDirectContent();
 		            PdfTemplate templateLine0 = contentByteLine0.createTemplate(width0, height0+stretchFactor0);
 		            Graphics2D graphics2dLine0 = templateLine0.createGraphics(width0, height0+stretchFactor0,
-		                    new DefaultFontMapper());
+		            		new DefaultFontMapper());
 		            Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, width0,
 		                    height0+stretchFactor0); // make bigger
 	            makePieChart(/*hackStocks()*/addStocksMulti(stockSet, latestPrices)).draw(graphics2dLine0, rectangle2dLine0);
@@ -175,7 +188,7 @@ public class ChartConstruction {
 	            PdfContentByte contentByteLine = writer.getDirectContent();
 	            PdfTemplate templateLine = contentByteLine.createTemplate(width, height+stretchFactor);
 	            Graphics2D graphics2dLine = templateLine.createGraphics(width, height+stretchFactor,
-	                    new DefaultFontMapper());
+	            		new DefaultFontMapper());
 	            Rectangle2D rectangle2dLine = new Rectangle2D.Double(0, 0, width,
 	                    height+stretchFactor); // make bigger
 
@@ -186,15 +199,14 @@ public class ChartConstruction {
 	            
 	             
 	            addEmptyLine(document,  1);
-
 	             
 	            document.close();
 	        } catch (Exception ex) {
 	        	System.out.println(ex);
-	        } finally {
-	        	
-	        }
-		  
+	        	if (document!=null)
+	        		document.close();
+	        } 
+	
 	}
 	
 	private JFreeChart createPerformanceGraph(int type, List<StockReportElement> stockList) { //RT

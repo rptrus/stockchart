@@ -10,6 +10,7 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.context.annotation.Scope;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
 
@@ -42,11 +43,13 @@ public class StockappApplication {
 	}
 	
 	@Bean
+	@Scope("prototype")
 	public Document document() {
 		return new Document(PageSize.A4, marginLeft, marginRight, marginTop, marginBottom);
 	}
 	
 	@Bean
+	@Scope("prototype")
 	public PdfWriter pdf() throws FileNotFoundException, DocumentException { 
         return PdfWriter.getInstance(document(), new FileOutputStream(
                 fileName));

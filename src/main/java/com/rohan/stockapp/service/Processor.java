@@ -7,6 +7,7 @@ import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -70,7 +71,8 @@ public class Processor {
 //		constructChart(stockAdd);
 	}
 	
-	public void addStockMulti(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException {
+	public int addStockMulti(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException {
+		int numberOfHoldings = 0;
 		StockSet stockSet = objectmapper.readValue(json, StockSet.class);
 		System.out.println(stockSet);
 		// retrieve the user details to get existing allotment
@@ -102,6 +104,7 @@ public class Processor {
 			userHoldings.add(newHolding);
 			//theUser.setHoldings(userHoldings);			
 			holdingRepository.save(newHolding);
+			numberOfHoldings++;
 		}
 		for (Holding deleteStock : myRemList) {			 
 			java.util.Iterator<Holding> iter = userHoldings.iterator();
@@ -111,6 +114,7 @@ public class Processor {
 					System.out.println("We have a match - now we can delete "+holding.getCode());
 					userHoldings.remove(holding);
 					holdingRepository.save(holding);
+					numberOfHoldings--;
 				}
 			}			
 		}
@@ -121,6 +125,7 @@ public class Processor {
 		// TODO. Mock it up for now
 		// Process to the ChartConstruct
 		constructChart(stockSet, latestPrices);
+		return numberOfHoldings;
 	}
 	
 	public boolean checkIfUserExists(String username) {
@@ -235,6 +240,33 @@ public class Processor {
 		} else if (size == 0) {
 			logger.error("Nothing to delete!");
 		}
+	}
+
+	public int getStockPortfolio(String username, String password) {
+		// retrieve the user details to get existing allotment
+		//fillTheDatabase(); // fill up with dummy data. look at a way to do this on startup in Spring (must be a way!)
+		User theUser = userService.getUser(username);
+		Set<Holding> userHoldings = userService.getUserHoldings(theUser); // A
+
+		Map<String, BigDecimal> latestPrices = new HashMap<String, BigDecimal>();
+		latestPrices.put("WBC", new BigDecimal(34.01).setScale(2, RoundingMode.HALF_EVEN));
+		latestPrices.put("VAS", new BigDecimal(77.12).setScale(2, RoundingMode.HALF_EVEN));
+		// we don't have a stockset, buy we have a json which can be morphed into one
+		
+		StockSet stockSet = new StockSet();
+		List<Stock> stockList = new ArrayList<Stock>();
+		// hacky
+		for (Holding holding : userHoldings) {
+			Stock stock = new Stock();						
+			stock.setDateAdded(holding.getDateAcquired().toString()); // do this later
+			stock.setPrice(Float.valueOf(holding.getPrice().floatValue()));
+			stock.setStock(holding.getCode());
+			stockList.add(stock);
+		}
+		stockSet.setStocks(stockList);
+		constructChart(stockSet, latestPrices);
+
+		return userHoldings.size();
 	}
 
 }
