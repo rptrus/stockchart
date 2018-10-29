@@ -16,7 +16,8 @@ import org.apache.commons.lang.builder.ToStringBuilder;
 @JsonPropertyOrder({
 "stock",
 "dateAdded",
-"price"
+"price",
+"numberOfUnits"
 })
 public class StockAdd {
 
@@ -26,6 +27,8 @@ private String stock;
 private String dateAdded;
 @JsonProperty("price")
 private Float price; // change to BigDecimal later
+@JsonProperty("numberOfUnits")
+private Integer numberOfUnits;
 @JsonIgnore
 private Map<String, Object> additionalProperties = new HashMap<String, Object>();
 
@@ -47,6 +50,7 @@ super();
 this.stock = stock;
 this.dateAdded = dateAdded;
 this.price = price;
+this.numberOfUnits = numberOfUnits;
 }
 
 @JsonProperty("stock")
@@ -94,6 +98,24 @@ this.price = price;
 return this;
 }
 
+
+@JsonProperty("numberOfUnits")
+public Integer getNumberOfUnits() {
+return numberOfUnits;
+}
+
+@JsonProperty("numberOfUnits")
+public void setNumberOfUnits(Integer numberOfUnits) {
+this.numberOfUnits = numberOfUnits;
+}
+
+public StockAdd withNumberOfUnits(Integer numberOfUnits) {
+this.numberOfUnits = numberOfUnits;
+return this;
+}
+
+
+
 @JsonAnyGetter
 public Map<String, Object> getAdditionalProperties() {
 return this.additionalProperties;
@@ -111,12 +133,12 @@ return this;
 
 @Override
 public String toString() {
-return new ToStringBuilder(this).append("stock", stock).append("dateAdded", dateAdded).append("price", price).append("additionalProperties", additionalProperties).toString();
+return new ToStringBuilder(this).append("stock", stock).append("dateAdded", dateAdded).append("price", price).append("numberOfUnits", numberOfUnits).append("additionalProperties", additionalProperties).toString();
 }
 
 @Override
 public int hashCode() {
-return new HashCodeBuilder().append(price).append(stock).append(additionalProperties).append(dateAdded).toHashCode();
+return new HashCodeBuilder().append(price).append(stock).append(additionalProperties).append(dateAdded).append(numberOfUnits).toHashCode();
 }
 
 @Override
@@ -128,7 +150,7 @@ if ((other instanceof StockAdd) == false) {
 return false;
 }
 StockAdd rhs = ((StockAdd) other);
-return new EqualsBuilder().append(price, rhs.price).append(stock, rhs.stock).append(additionalProperties, rhs.additionalProperties).append(dateAdded, rhs.dateAdded).isEquals();
+return new EqualsBuilder().append(price, rhs.price).append(stock, rhs.stock).append(numberOfUnits, rhs.numberOfUnits).append(additionalProperties, rhs.additionalProperties).append(dateAdded, rhs.dateAdded).isEquals();
 }
 
 }

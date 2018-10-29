@@ -13,8 +13,8 @@ public class StockReportElement extends BaseReportElement {
 		super();
 	}
 	
-	public StockReportElement(LocalDate dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice) {
-		super(dateAcquired, code, acquiredPrice, nowPrice);
+	public StockReportElement(LocalDate dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice, Integer numberOfUnits) {
+		super(dateAcquired, code, acquiredPrice, nowPrice, numberOfUnits);
 	}
 
 	// set to true if the stock has already been sold

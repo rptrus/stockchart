@@ -82,7 +82,13 @@ public class Processor {
 		userHoldings.size();
 		// Add it to the Database
 		// TODO - find the codes in the JSON that aren't in the DB
-		stockSet.getStocks(); // B
+		Map<String, BigDecimal> returnedPrices = null;
+		try {
+			returnedPrices = getLatestPrices(stockSet.getStocks());
+		} catch (InterruptedException | ExecutionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} // B
 		// filter out the things that don't match, leaving the things that are left=new O(N^2) but OK for small porfolios
 		// Next, do the other way, so that we can delete things out too
 		List<Stock> myNewList = stockSet.getStocks().stream().filter(jStock-> userHoldings.stream().noneMatch(dbStock -> dbStock.getCode().equals(jStock.getStock()))  ).collect(Collectors.toList());
@@ -124,7 +130,7 @@ public class Processor {
 		latestPrices.put("VAS", new BigDecimal(77.12).setScale(2, RoundingMode.HALF_EVEN));
 		// TODO. Mock it up for now
 		// Process to the ChartConstruct
-		constructChart(stockSet, latestPrices);
+		constructChart(stockSet, /*latestPrices*/returnedPrices); // TODO Have this DB driven, not JSON driven
 		return numberOfHoldings;
 	}
 	
@@ -158,14 +164,14 @@ public class Processor {
 		user.setPassword(Utils.md5Hash("password"));
 
 		// 1
-		Holding holding1 = new Holding(LocalDateTime.now(), LocalDateTime.now(), "VAS", new BigDecimal(1.23));
+		Holding holding1 = new Holding(LocalDateTime.now(), LocalDateTime.now(), "VAS", new BigDecimal(1.23),10);
 		Quote quote1 = new Quote("VAS", new BigDecimal(1.99));
 		holding1.setQuote(quote1);
 		holding1.setUser(user);
 		quote1.setHolding(holding1);
 		
 		// 2
-		Holding holding2 = new Holding(LocalDateTime.now(), LocalDateTime.now(), "WBC", new BigDecimal(26.99));
+		Holding holding2 = new Holding(LocalDateTime.now(), LocalDateTime.now(), "WBC", new BigDecimal(26.99),20);
 		Quote quote2 = new Quote("WBC", new BigDecimal(28.99));
 		holding2.setQuote(quote2);
 		holding2.setUser(user);
@@ -180,49 +186,6 @@ public class Processor {
 		userRepository.save(user);
 	}
 	
-	//@PostConstruct
-	public void testIt() throws URISyntaxException, IOException, InterruptedException, ExecutionException {
-		
-		chart.makePDFChart(null);
-		System.out.println("Done with chart!");
-		
-		fillTheDatabase();
-
-		User retrieved = userRepository.findByUsername("rohan");
-		User retrieved1 = userService.getUser("rohan");
-		
-
-		// need to poll 1 by 1
-		Future<String> a = stockPriceRetriever.retrieveQuote("VTS");
-		Future<String> b = stockPriceRetriever.retrieveQuote("BHP");
-		Future<String> c = stockPriceRetriever.retrieveQuote("WBC");
-		Future<String> d = stockPriceRetriever.retrieveQuote("KGN");
-		Future<String> e = stockPriceRetriever.retrieveQuote("RHC");
-		Future<String> f = stockPriceRetriever.retrieveQuote("FLT");
-		
-//		try {
-//			Thread.sleep(5000);
-//		} catch (InterruptedException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-				
-		System.out.println("VTS->"+ a.get());
-		System.out.println("BHP->"+ b.get());		
-		System.out.println("WBC->"+ c.get());
-		System.out.println("KGN->"+ d.get());
-		System.out.println("RHC->"+ e.get());
-		System.out.println("FLT->"+ f.get());
-		
-		
-		// regex
-		
-		String matchingRegex = "\"currency\":\"AUD\",\"regularMarketPrice\":{\"raw\":[0-9]+.[0-9]+,\"fmt\":\".*\"}";
-		
-		System.out.println("done!");
-		
-	}
-
 	@Transactional
 	public void deleteStock(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException {
 		User theUser = userService.getUser(username); //DB
@@ -267,6 +230,22 @@ public class Processor {
 		constructChart(stockSet, latestPrices);
 
 		return userHoldings.size();
+	}
+	
+	// Test the hell out of this....
+	private Map<String, BigDecimal> getLatestPrices(List<Stock> stocks) throws InterruptedException, ExecutionException {
+		Map<String, BigDecimal> returnedPrices = new HashMap<String, BigDecimal>();
+		Map<String, Future<String>> waitForPrices = new HashMap<String, Future<String>>();
+		for (Stock stock: stocks) {
+			Future<String> currentPrice = stockPriceRetriever.retrieveQuote(stock.getStock());
+			waitForPrices.put(stock.getStock(), currentPrice);			
+		}
+		// now we just get all our values that have been computed in parallel 
+		for (Map.Entry<String, Future<String>> entry : waitForPrices.entrySet())
+		{
+		    returnedPrices.put(entry.getKey(), new BigDecimal(entry.getValue().get()));
+		}
+		return returnedPrices;
 	}
 
 }

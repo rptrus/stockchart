@@ -15,12 +15,13 @@ public abstract class BaseReportElement {
 	
 	
 	
-	public BaseReportElement(LocalDate dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice) {
+	public BaseReportElement(LocalDate dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice, Integer numberOfUnits) {
 		super();
 		this.dateAcquired = dateAcquired;
 		this.code = code;
 		this.acquiredPrice = acquiredPrice != null ? Utils.rectify(acquiredPrice,2) : acquiredPrice;
 		this.currentPrice = currentPrice!=null ? Utils.rectify(nowPrice,2) : nowPrice;
+		this.numberOfUnits = numberOfUnits;
 	}
 
 
@@ -32,6 +33,8 @@ public abstract class BaseReportElement {
 	BigDecimal acquiredPrice;
 	
 	BigDecimal currentPrice;
+	
+	Integer numberOfUnits;
 	
 	//BigDecimal nowPrice;
 	
@@ -78,7 +81,15 @@ public abstract class BaseReportElement {
 	public void setCode(String code) {
 		this.code = code;
 	}
-	
+
+	public Integer getNumberOfUnits() {
+		return numberOfUnits;
+	}
+
+	public void setNumberOfUnits(Integer numberOfUnits) {
+		this.numberOfUnits = numberOfUnits;
+	}
+
 	
 
 }

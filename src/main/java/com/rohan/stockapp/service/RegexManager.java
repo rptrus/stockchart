@@ -21,10 +21,7 @@ public class RegexManager {
 		boolean matches = matcher.matches();
 		
 		if (matches) {			
-			System.out.println(matches);		
-			System.out.println(matches);
-			
-			System.out.println(matcher.group(1));
+			//System.out.println(matcher.group(1));
 			return matcher.group(1);
 			
 		}
@@ -41,10 +38,7 @@ public class RegexManager {
 		boolean matches = matcher.matches();
 		
 		if (matches) {
-			System.out.println(matches);
-			System.out.println(matches);
-			
-			System.out.println(StringUtils.substringBefore(matcher.group(1), "\""));
+			//System.out.println(StringUtils.substringBefore(matcher.group(1), "\""));
 			return matcher.group(1);
 			
 		}

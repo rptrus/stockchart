@@ -3,6 +3,8 @@ package com.rohan.stockapp.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.security.MessageDigest;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 import org.apache.commons.codec.digest.DigestUtils;
 
@@ -18,6 +20,10 @@ public class Utils {
 	
 	public static BigDecimal rectify(BigDecimal input, int scale) {
 		return input.setScale(scale, RoundingMode.HALF_EVEN);
+	}
+	
+	public BigDecimal toBigdecimal(String input) {		
+		return new BigDecimal(input.toString());
 	}
 
 }

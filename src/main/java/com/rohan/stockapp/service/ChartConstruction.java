@@ -300,23 +300,24 @@ public class ChartConstruction {
 	  
 	private JFreeChart makePieChart(List<StockReportElement> stockList) {
 		  DefaultPieDataset dataset = new DefaultPieDataset( );
-		  int counter = 0;
-		  int accum = 0;
+
+		  BigDecimal accumulated = BigDecimal.ZERO;
 		  for (StockReportElement stock : stockList) {			  
 			  Random rand = new Random();
 			  int size = stockList.size();
 			  int bound = 100/size;
-
-			  int aSegment = rand.nextInt(bound);
-			  while (aSegment < 10) aSegment = rand.nextInt(bound);
-			  accum += aSegment;
-			  if (counter == size-1 ) aSegment = 100 - accum;
-			  dataset.setValue(stock.getCode(), aSegment );
-			  //dataset.setValue("SamSung Grand", new Double( 20 ) );
-			  //dataset.setValue("MotoG", new Double( 40 ) );
-			  //dataset.setValue("Nokia Lumia", new Double( 10 ) );
-			  counter++;
+			  
+			  // TODO  Compute this result outside of the presentation layer
+			  BigDecimal shareHolding = stock.getCurrentPrice().multiply(BigDecimal.valueOf(stock.getNumberOfUnits()));
+			  accumulated = accumulated.add(shareHolding);
 		  }
+		  
+		  for (StockReportElement stock : stockList) {
+			  BigDecimal shareHolding = stock.getCurrentPrice().multiply(BigDecimal.valueOf(stock.getNumberOfUnits()));
+			  BigDecimal portion = shareHolding.divide(accumulated, 2, RoundingMode.HALF_UP).multiply(BigDecimal.TEN.pow(2));
+			  dataset.setValue(stock.getCode(), portion.doubleValue());
+		  }
+
 
 	      JFreeChart chart = ChartFactory.createPieChart(
 	         "Share Portfolio Allocation",   // chart title
@@ -448,11 +449,12 @@ public class ChartConstruction {
           insertCell(table, stock.getCurrentPrice().setScale(2,RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);
           Float total = 100f; 
           insertCell(table, stock.getCurrentPrice().subtract(stock.getAcquiredPrice()).setScale(2, RoundingMode.HALF_EVEN)+"", Element.ALIGN_RIGHT, 1, bfNormal); // % by value 
-          insertCell(table, (stock.getCurrentPrice().divide(stock.getAcquiredPrice(),2,RoundingMode.HALF_EVEN)
+          insertCell(table, (stock.getCurrentPrice().divide(stock.getAcquiredPrice(),4,RoundingMode.HALF_EVEN)
     				.subtract(BigDecimal.ONE))
-    				.multiply(BigDecimal.TEN.pow(2)).setScale(0).toString().toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by number		  
+    				.multiply(BigDecimal.TEN.pow(2)).setScale(2).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by number		  
 	  }
 	  
+	  /*
 	  private List<StockReportElement> addStocks(StockAdd stockAdd) {
 		  List<StockReportElement> stocks = new ArrayList<>(); // TODO - read existing holdings to add. For now, just create single array
 		  StockReportElement stok = new StockReportElement();
@@ -464,6 +466,7 @@ public class ChartConstruction {
 		  stok = new StockReportElement(LocalDate.of(yyyy, mm, dd), "VAS", value, new BigDecimal(72.10)); // 4th param get from regex data
 		  return Collections.singletonList(stok);
 	  }
+	  */
 	  
 	  private List<StockReportElement> addStocksMulti(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
 		  List<Stock> listOfStocks = stockSet.getStocks();		  
@@ -474,7 +477,7 @@ public class ChartConstruction {
 			  int mm = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 5,7));
 			  int dd = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 8,10)); // add more error checking later
 			  BigDecimal buyPrice = new BigDecimal(stock.getPrice()).setScale(2, RoundingMode.HALF_EVEN);
-			  stok = new StockReportElement(LocalDate.of(yyyy, mm, dd), stock.getStock(), buyPrice, latestPrices.get(stock.getStock())); // 4th param get from regex data
+			  stok = new StockReportElement(LocalDate.of(yyyy, mm, dd), stock.getStock(), buyPrice, latestPrices.get(stock.getStock()), stock.getNumberOfUnits()); // 4th param get from regex data
 			  stocks.add(stok);
 		  }
 		  return stocks;
@@ -483,10 +486,10 @@ public class ChartConstruction {
 	  private List<StockReportElement> hackStocks() {
 		  List<StockReportElement> stocks = new ArrayList<>();
 		  StockReportElement[] stok = new StockReportElement[4];
-		  stok[0] = new StockReportElement(LocalDate.of(2014, Month.JANUARY, 1), "VAS", new BigDecimal(68.00), new BigDecimal(72.10));
-		  stok[1] = new StockReportElement(LocalDate.of(2015, Month.JULY, 11), "WBC", new BigDecimal(27.00), new BigDecimal(30.50));
-		  stok[2] = new StockReportElement(LocalDate.of(2015, Month.MAY, 14), "KGN", new BigDecimal(2.22), new BigDecimal(3.00));
-		  stok[3] = new StockReportElement(LocalDate.of(2013, Month.MAY, 23), "CBA", new BigDecimal(67.00), new BigDecimal(69.50));
+		  stok[0] = new StockReportElement(LocalDate.of(2014, Month.JANUARY, 1), "VAS", new BigDecimal(68.00), new BigDecimal(72.10), 10);
+		  stok[1] = new StockReportElement(LocalDate.of(2015, Month.JULY, 11), "WBC", new BigDecimal(27.00), new BigDecimal(30.50), 20);
+		  stok[2] = new StockReportElement(LocalDate.of(2015, Month.MAY, 14), "KGN", new BigDecimal(2.22), new BigDecimal(3.00), 30);
+		  stok[3] = new StockReportElement(LocalDate.of(2013, Month.MAY, 23), "CBA", new BigDecimal(67.00), new BigDecimal(69.50), 40);
 		  return Arrays.asList(stok);
 	  }
 

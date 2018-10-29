@@ -18,12 +18,13 @@ import javax.persistence.Table;
 @Table(name = "HOLDING")
 public class Holding {
 
-	public Holding(LocalDateTime dateAcquired, LocalDateTime dateDisposed, String code, BigDecimal price) {
+	public Holding(LocalDateTime dateAcquired, LocalDateTime dateDisposed, String code, BigDecimal price, Integer numberOfUnits) {
 		super();
 		this.dateAcquired = dateAcquired;
 		this.dateDisposed = dateDisposed;
 		this.code = code;
 		this.price = price;
+		this.numberOfUnits = numberOfUnits;
 	}
 	
 	public Holding() {}
@@ -39,6 +40,8 @@ public class Holding {
 	String code;
 		
 	BigDecimal price;
+	
+	Integer numberOfUnits;
 	
 	@OneToOne(cascade = CascadeType.ALL)
 	Quote quote;
@@ -104,5 +107,12 @@ public class Holding {
 		this.price = price;
 	}
 
+	public Integer getNumberOfUnits() {
+		return numberOfUnits;
+	}
+	
+	public void setNumberOfUnits(Integer numberOfUnits) {
+		this.numberOfUnits = numberOfUnits;
+	}
 
 }

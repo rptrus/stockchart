@@ -8,7 +8,7 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "stock", "dateAdded", "price" })
+@JsonPropertyOrder({ "stock", "dateAdded", "price", "numberOfUnits" })
 public class Stock {
 
 	@JsonProperty("stock")
@@ -17,6 +17,8 @@ public class Stock {
 	private String dateAdded;
 	@JsonProperty("price")
 	private Float price;
+	@JsonProperty("numberOfUnits")
+	private Integer numberOfUnits;
 
 	/**
 	 * No args constructor for use in serialization
@@ -31,11 +33,12 @@ public class Stock {
 	 * @param stock
 	 * @param dateAdded
 	 */
-	public Stock(String stock, String dateAdded, Float price) {
+	public Stock(String stock, String dateAdded, Float price, Integer numberOfUnits) {
 		super();
 		this.stock = stock;
 		this.dateAdded = dateAdded;
 		this.price = price;
+		this.numberOfUnits = numberOfUnits;
 	}
 
 	@JsonProperty("stock")
@@ -82,16 +85,32 @@ public class Stock {
 		this.price = price;
 		return this;
 	}
+	
+	@JsonProperty("numberOfUnits")
+	public Integer getNumberOfUnits() {
+	return numberOfUnits;
+	}
+
+	@JsonProperty("numberOfUnits")
+	public void setNumberOfUnits(Integer numberOfUnits) {
+	this.numberOfUnits = numberOfUnits;
+	}
+
+	public Stock withNumberOfUnits(Integer numberOfUnits) {
+	this.numberOfUnits = numberOfUnits;
+	return this;
+	}
+
 
 	@Override
 	public String toString() {
-		return new ToStringBuilder(this).append("stock", stock).append("dateAdded", dateAdded).append("price", price)
+		return new ToStringBuilder(this).append("stock", stock).append("dateAdded", dateAdded).append("price", price).append("numberOfUnits", numberOfUnits)
 				.toString();
 	}
 
 	@Override
 	public int hashCode() {
-		return new HashCodeBuilder().append(price).append(stock).append(dateAdded).toHashCode();
+		return new HashCodeBuilder().append(price).append(stock).append(dateAdded).append(numberOfUnits).toHashCode();
 	}
 
 	@Override
@@ -103,7 +122,7 @@ public class Stock {
 			return false;
 		}
 		Stock rhs = ((Stock) other);
-		return new EqualsBuilder().append(price, rhs.price).append(stock, rhs.stock).append(dateAdded, rhs.dateAdded)
+		return new EqualsBuilder().append(price, rhs.price).append(stock, rhs.stock).append(dateAdded, rhs.dateAdded).append(numberOfUnits, rhs.numberOfUnits)
 				.isEquals();
 	}
 

@@ -1,9 +1,6 @@
 package com.rohan.stockapp.service;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.Future;
@@ -13,19 +10,25 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StopWatch;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 @Component
-@Async
 public class StockPriceRetriever {
 	
 	@Autowired
 	RegexManager regexManager;
 	
+	public StockPriceRetriever(RegexManager regexManager) {
+		this.regexManager = regexManager;
+	}
+	
+	@Async
 	public Future<String> retrieveQuote(String code) {
 		
+		StopWatch stopwatch = new StopWatch();
 		String aQuotePage = null;
 		String quote = null;
 		String industry = null;
@@ -42,13 +45,15 @@ public class StockPriceRetriever {
 		
 		//String code = "DDR";		
 		
+		stopwatch.start();
 		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<String> result = restTemplate.getForEntity(uri.toString(), String.class);
 		//System.out.println(result.getBody());
-		
 		aQuotePage = result.getBody();
 		quote = regexManager.getLastPrice(aQuotePage, code);
-		industry = regexManager.getIndustry(aQuotePage);
+		stopwatch.stop();
+		System.out.println("["+code+"] Seconds: "+stopwatch.getTotalTimeSeconds());
+		//industry = regexManager.getIndustry(aQuotePage);
 		
 		Files.write(Paths.get("c:\\temp\\output"+code+".txt"), aQuotePage.getBytes());
 		} catch (IOException e){
@@ -56,7 +61,7 @@ public class StockPriceRetriever {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return new AsyncResult<String>(quote+" "+industry);
+		return new AsyncResult<String>(quote);
 
 	}
 

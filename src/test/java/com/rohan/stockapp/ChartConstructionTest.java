@@ -167,6 +167,7 @@ public class ChartConstructionTest {
 		                    new DefaultFontMapper());
 		            Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, width0,
 		                    height0+stretchFactor0); // make bigger
+		            System.out.println("STOP HERE!!!!!!!!!!!!!!!!!!!");
 	            makePieChart(hackStocks()).draw(graphics2dLine0, rectangle2dLine0);
 	            graphics2dLine0.dispose();
 	            contentByte0.addTemplate(templateLine0, 38, 300); // positioning on page
@@ -418,22 +419,22 @@ public class ChartConstructionTest {
 
 	private JFreeChart makePieChart(List<StockReportElement> stockList) {
 		  DefaultPieDataset dataset = new DefaultPieDataset( );
-		  int counter = 0;
-		  int accum = 0;
+
+		  BigDecimal accumulated = BigDecimal.ZERO;
 		  for (StockReportElement stock : stockList) {			  
 			  Random rand = new Random();
 			  int size = stockList.size();
 			  int bound = 100/size;
-
-			  int aSegment = rand.nextInt(bound);
-			  while (aSegment < 10) aSegment = rand.nextInt(bound);
-			  accum += aSegment;
-			  if (counter == size-1 ) aSegment = 100 - accum;
-			  dataset.setValue(stock.getCode(), aSegment );
-			  //dataset.setValue("SamSung Grand", new Double( 20 ) );
-			  //dataset.setValue("MotoG", new Double( 40 ) );
-			  //dataset.setValue("Nokia Lumia", new Double( 10 ) );
-			  counter++;
+			  
+			  // TODO  Compute this result outside of the presentation layer
+			  BigDecimal shareHolding = stock.getCurrentPrice().multiply(BigDecimal.valueOf(stock.getNumberOfUnits()));
+			  accumulated = accumulated.add(shareHolding);
+		  }
+		  
+		  for (StockReportElement stock : stockList) {
+			  BigDecimal shareHolding = stock.getCurrentPrice().multiply(BigDecimal.valueOf(stock.getNumberOfUnits()));
+			  BigDecimal portion = shareHolding.divide(accumulated, 2, RoundingMode.HALF_UP).multiply(BigDecimal.TEN.pow(2));
+			  dataset.setValue(stock.getCode(), portion.doubleValue());
 		  }
 
 	      JFreeChart chart = ChartFactory.createPieChart(
@@ -456,10 +457,10 @@ public class ChartConstructionTest {
 	  private List hackStocks() {
 		  List<StockReportElement> stocks = new ArrayList<>();
 		  StockReportElement[] stok = new StockReportElement[4];
-		  stok[0] = new StockReportElement(LocalDate.of(2014, Month.JANUARY, 1), "VAS", new BigDecimal(68.00), new BigDecimal(72.10));
-		  stok[1] = new StockReportElement(LocalDate.of(2015, Month.JULY, 11), "WBC", new BigDecimal(27.00), new BigDecimal(30.50));
-		  stok[2] = new StockReportElement(LocalDate.of(2015, Month.MAY, 14), "KGN", new BigDecimal(2.22), new BigDecimal(3.00));
-		  stok[3] = new StockReportElement(LocalDate.of(2013, Month.MAY, 23), "CBA", new BigDecimal(67.00), new BigDecimal(69.50));
+		  stok[0] = new StockReportElement(LocalDate.of(2014, Month.JANUARY, 1), "VAS", new BigDecimal(68.00), new BigDecimal(72.10), 10);
+		  stok[1] = new StockReportElement(LocalDate.of(2015, Month.JULY, 11), "WBC", new BigDecimal(27.00), new BigDecimal(30.50), 20);
+		  stok[2] = new StockReportElement(LocalDate.of(2015, Month.MAY, 14), "KGN", new BigDecimal(2.22), new BigDecimal(3.00), 30);
+		  stok[3] = new StockReportElement(LocalDate.of(2013, Month.MAY, 23), "CBA", new BigDecimal(67.00), new BigDecimal(69.50), 40);
 		  return Arrays.asList(stok);
 	  }
 	  
