@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -44,7 +45,14 @@ public class ResourceController {
 	@Autowired
 	Processor processor;
 	
-	@GetMapping(value="/", produces = "application/json")
+	@GetMapping(value="/")
+	public ModelAndView get() {
+		 ModelAndView modelAndView = new ModelAndView();
+		    modelAndView.setViewName("index.html");
+		    return modelAndView;
+	}
+	
+	@GetMapping(value="/get", produces = "application/json")
 	public ResponseEntity<Status> get(@RequestHeader("X-username") String username, @RequestHeader("X-password") String password) throws InterruptedException, ExecutionException {
 		Status status = new Status();
 		HttpStatus requestStatus = HttpStatus.OK;
@@ -104,7 +112,7 @@ public class ResourceController {
 		
 	}
 	
-	@GetMapping
+	@GetMapping(value="/random", produces = "application/json")
 	public ResponseEntity<Status> random(@RequestHeader("X-username") String username, @RequestHeader("X-password") String password, @RequestParam(value="howmany", required=true) String howMany) throws JsonParseException, JsonMappingException, IOException, InterruptedException, ExecutionException {
 		Status status = new Status();
 		HttpStatus requestStatus = HttpStatus.OK;
