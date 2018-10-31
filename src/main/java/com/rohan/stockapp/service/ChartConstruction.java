@@ -13,6 +13,7 @@ import java.sql.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -80,12 +81,8 @@ public class ChartConstruction {
     Font bfNormal = FontFactory.getFont("Verdana", 8, Font.NORMAL);
     
     final String BG =BASE_DIR+File.separatorChar+"ferny.jpg";
-
-    public void makePDFChart(StockSet stockSet) {
-    	makePDFChart(stockSet, null);
-    }
 	
-	public void makePDFChart(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
+	public void makePDFChart(List<StockReportElement> stockElementList) {
 		  String fileName = BASE_DIR+File.separatorChar+"MyChart.pdf";
 		  
 		  PdfWriter writer = null;
@@ -128,29 +125,22 @@ public class ChartConstruction {
 	             
 	             
 	                SimpleDateFormat format1 = new SimpleDateFormat("yyyymmdd");
-	                SimpleDateFormat format2 = new SimpleDateFormat("dd MMM yyyy");
+	                SimpleDateFormat format2 = new SimpleDateFormat("dd MMM yyyy HH:mm");
 	                
 	                Calendar cal = Calendar.getInstance();
 	                cal.setTime(new java.util.Date());
-	                java.util.Date edate = cal.getTime();
-	                cal.add(Calendar.DATE, -3);
-	                java.util.Date sdate = cal.getTime();
-	                
-	                //Date sdate = format1.parse(startDateArg);
-	                //Date edate = format1.parse(endDateArg);	                
-	                
-	                
+	                java.util.Date edate = cal.getTime();	                
 	                
 	           //insert column headings
 	           // comes from args
 	                Paragraph p;
 	                Font bold = new Font(FontFamily.HELVETICA, 12, Font.BOLD);
-	                p = new Paragraph(/*format2.format(sdate) + " to " + */"Report Date:    "+format2.format(edate), bold );
+	                p = new Paragraph("Report Date:\t\t\t\t"+format2.format(edate), bold );
 	                p.setAlignment(Element.ALIGN_JUSTIFIED);
 	                document.add(p);
 	                addEmptyLine(document, 2);
 	                         
-	             document.add(stockStatsTable(/*hackStocks()*/addStocksMulti(stockSet, latestPrices))); // TODO, read previous from DB and then add 'stock'
+	             document.add(stockStatsTable(stockElementList));
 	             
 	             addEmptyLine(document,  1);
 	             
@@ -171,7 +161,7 @@ public class ChartConstruction {
 		            		new DefaultFontMapper());
 		            Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, width0,
 		                    height0+stretchFactor0); // make bigger
-	            makePieChart(/*hackStocks()*/addStocksMulti(stockSet, latestPrices)).draw(graphics2dLine0, rectangle2dLine0);
+	            makePieChart(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
 	            graphics2dLine0.dispose();
 	            contentByte0.addTemplate(templateLine0, 38, 300); // positioning on page
 
@@ -192,7 +182,7 @@ public class ChartConstruction {
 	            Rectangle2D rectangle2dLine = new Rectangle2D.Double(0, 0, width,
 	                    height+stretchFactor); // make bigger
 
-	            createPerformanceGraph(2, /*hackStocks()*/addStocksMulti(stockSet, latestPrices)).draw(graphics2dLine, rectangle2dLine);
+	            createPerformanceGraph(2, stockElementList).draw(graphics2dLine, rectangle2dLine);
 	             
 	            graphics2dLine.dispose();
 	            contentByte.addTemplate(templateLine, 38, 38); // positioning on page
@@ -201,6 +191,7 @@ public class ChartConstruction {
 	            addEmptyLine(document,  1);
 	             
 	            document.close();
+	            System.out.println("This DOCUMENT is CLOSED - buh bye");
 	        } catch (Exception ex) {
 	        	System.out.println(ex);
 	        	if (document!=null)
@@ -453,21 +444,7 @@ public class ChartConstruction {
     				.subtract(BigDecimal.ONE))
     				.multiply(BigDecimal.TEN.pow(2)).setScale(2).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by number		  
 	  }
-	  
-	  /*
-	  private List<StockReportElement> addStocks(StockAdd stockAdd) {
-		  List<StockReportElement> stocks = new ArrayList<>(); // TODO - read existing holdings to add. For now, just create single array
-		  StockReportElement stok = new StockReportElement();
-		  int yyyy = Integer.valueOf(StringUtils.substring(stockAdd.getDateAdded(), 0,4)); 
-		  int mm = Integer.valueOf(StringUtils.substring(stockAdd.getDateAdded(), 5,7));
-		  int dd = Integer.valueOf(StringUtils.substring(stockAdd.getDateAdded(), 8,10)); // add more error checking later
-		  BigDecimal value = new BigDecimal(stockAdd.getPrice(),
-			        new MathContext(2, RoundingMode.HALF_EVEN));
-		  stok = new StockReportElement(LocalDate.of(yyyy, mm, dd), "VAS", value, new BigDecimal(72.10)); // 4th param get from regex data
-		  return Collections.singletonList(stok);
-	  }
-	  */
-	  
+	  	  
 	  private List<StockReportElement> addStocksMulti(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
 		  List<Stock> listOfStocks = stockSet.getStocks();		  
 		  List<StockReportElement> stocks = new ArrayList<>(); // TODO - read existing holdings to add. For now, just create single array
@@ -476,8 +453,9 @@ public class ChartConstruction {
 			  int yyyy = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 0,4)); 
 			  int mm = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 5,7));
 			  int dd = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 8,10)); // add more error checking later
+			  int hh = 0, mi = 0, ss = 0;
 			  BigDecimal buyPrice = new BigDecimal(stock.getPrice()).setScale(2, RoundingMode.HALF_EVEN);
-			  stok = new StockReportElement(LocalDate.of(yyyy, mm, dd), stock.getStock(), buyPrice, latestPrices.get(stock.getStock()), stock.getNumberOfUnits()); // 4th param get from regex data
+			  stok = new StockReportElement(LocalDateTime.of(yyyy, mm, dd, hh, mi, ss), stock.getStock(), buyPrice, latestPrices.get(stock.getStock()), stock.getNumberOfUnits()); // 4th param get from regex data
 			  stocks.add(stok);
 		  }
 		  return stocks;
@@ -486,10 +464,11 @@ public class ChartConstruction {
 	  private List<StockReportElement> hackStocks() {
 		  List<StockReportElement> stocks = new ArrayList<>();
 		  StockReportElement[] stok = new StockReportElement[4];
-		  stok[0] = new StockReportElement(LocalDate.of(2014, Month.JANUARY, 1), "VAS", new BigDecimal(68.00), new BigDecimal(72.10), 10);
-		  stok[1] = new StockReportElement(LocalDate.of(2015, Month.JULY, 11), "WBC", new BigDecimal(27.00), new BigDecimal(30.50), 20);
-		  stok[2] = new StockReportElement(LocalDate.of(2015, Month.MAY, 14), "KGN", new BigDecimal(2.22), new BigDecimal(3.00), 30);
-		  stok[3] = new StockReportElement(LocalDate.of(2013, Month.MAY, 23), "CBA", new BigDecimal(67.00), new BigDecimal(69.50), 40);
+		  int hh = 0, mi = 0, ss = 0;
+		  stok[0] = new StockReportElement(LocalDateTime.of(2014, Month.JANUARY, 1, hh, mi, ss), "VAS", new BigDecimal(68.00), new BigDecimal(72.10), 10);
+		  stok[1] = new StockReportElement(LocalDateTime.of(2015, Month.JULY, 11, hh, mi, ss), "WBC", new BigDecimal(27.00), new BigDecimal(30.50), 20);
+		  stok[2] = new StockReportElement(LocalDateTime.of(2015, Month.MAY, 14, hh, mi, ss), "KGN", new BigDecimal(2.22), new BigDecimal(3.00), 30);
+		  stok[3] = new StockReportElement(LocalDateTime.of(2013, Month.MAY, 23, hh, mi, ss), "CBA", new BigDecimal(67.00), new BigDecimal(69.50), 40);
 		  return Arrays.asList(stok);
 	  }
 

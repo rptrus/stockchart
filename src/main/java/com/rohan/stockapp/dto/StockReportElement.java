@@ -2,6 +2,7 @@ package com.rohan.stockapp.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import com.rohan.stockapp.entity.Holding;
 
@@ -13,7 +14,7 @@ public class StockReportElement extends BaseReportElement {
 		super();
 	}
 	
-	public StockReportElement(LocalDate dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice, Integer numberOfUnits) {
+	public StockReportElement(LocalDateTime dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice, Integer numberOfUnits) {
 		super(dateAcquired, code, acquiredPrice, nowPrice, numberOfUnits);
 	}
 

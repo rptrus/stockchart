@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 
 import javax.transaction.Transactional;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rohan.stockapp.dto.StockReportElement;
 import com.rohan.stockapp.entity.Holding;
 import com.rohan.stockapp.entity.Quote;
 import com.rohan.stockapp.entity.User;
@@ -71,7 +73,7 @@ public class Processor {
 //		constructChart(stockAdd);
 	}
 	
-	public int addStockMulti(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException {
+	public int addStockMulti(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException, InterruptedException, ExecutionException {
 		int numberOfHoldings = 0;
 		StockSet stockSet = objectmapper.readValue(json, StockSet.class);
 		System.out.println(stockSet);
@@ -83,12 +85,6 @@ public class Processor {
 		// Add it to the Database
 		// TODO - find the codes in the JSON that aren't in the DB
 		Map<String, BigDecimal> returnedPrices = null;
-		try {
-			returnedPrices = getLatestPrices(stockSet.getStocks());
-		} catch (InterruptedException | ExecutionException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} // B
 		// filter out the things that don't match, leaving the things that are left=new O(N^2) but OK for small porfolios
 		// Next, do the other way, so that we can delete things out too
 		List<Stock> myNewList = stockSet.getStocks().stream().filter(jStock-> userHoldings.stream().noneMatch(dbStock -> dbStock.getCode().equals(jStock.getStock()))  ).collect(Collectors.toList());
@@ -105,6 +101,7 @@ public class Processor {
 			newHolding.setCode(newStock.getStock());
 			newHolding.setDateAcquired(newDate);
 			newHolding.setPrice(new BigDecimal(newStock.getPrice()));
+			newHolding.setNumberOfUnits(newStock.getNumberOfUnits());
 			newHolding.setUser(theUser);
 			//newHolding.setQuote(quote);
 			userHoldings.add(newHolding);
@@ -124,32 +121,41 @@ public class Processor {
 				}
 			}			
 		}
-		// Obtain the latest prices
-		Map<String, BigDecimal> latestPrices = new HashMap<String, BigDecimal>();
-		latestPrices.put("WBC", new BigDecimal(34.01).setScale(2, RoundingMode.HALF_EVEN));
-		latestPrices.put("VAS", new BigDecimal(77.12).setScale(2, RoundingMode.HALF_EVEN));
-		// TODO. Mock it up for now
-		// Process to the ChartConstruct
-		constructChart(stockSet, /*latestPrices*/returnedPrices); // TODO Have this DB driven, not JSON driven
+		//returnedPrices = getLatestPrices(stockElementList);
+		List<StockReportElement> stockElementList = toStockElementList(userHoldings, getLatestPrices(userHoldings));
+		constructChart(stockElementList); // TODO Have this DB driven, not JSON driven
 		return numberOfHoldings;
+	}
+	
+	// We will rectify the DB elements (that have been sync'd by JSON together with the pulled stock prices  
+	private List<StockReportElement> toStockElementList(Set<Holding> userHoldings, Map<String, BigDecimal> latestStockPrices) {
+		List<StockReportElement> stockList = new ArrayList<>();
+		for (Holding holding : userHoldings) {
+			StockReportElement stockReportElement = new StockReportElement();
+			stockReportElement.setCode(holding.getCode());
+			stockReportElement.setAcquiredPrice(holding.getPrice());
+			stockReportElement.setDateAcquired(holding.getDateAcquired());
+			stockReportElement.setNumberOfUnits(holding.getNumberOfUnits());
+			stockReportElement.setCurrentPrice(latestStockPrices.get(holding.getCode()));
+			stockList.add(stockReportElement);
+		}
+		return stockList;
 	}
 	
 	public boolean checkIfUserExists(String username) {
 		return userService.getUser(username) != null;
 	}
 	
-	private void constructChart(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
-		synchroniseCurrentPrices(stockSet, latestPrices);
-		chart.makePDFChart(stockSet, latestPrices);
+	private void constructChart(List<StockReportElement> stockElementList) {
+		synchroniseCurrentPrices(stockElementList); // can remove this
+		chart.makePDFChart(stockElementList);
 	}
 	
 	// If we don't have a latest price, then what we will do is set it to the current price and flag an alert
-	private void synchroniseCurrentPrices(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
-			for (Stock stock :stockSet.getStocks()) {
-				if (latestPrices.get(stock.getStock()) == null) {
-					logger.error("Missing 'Latest Price' of {}",stock.getStock());
-					latestPrices.put(stock.getStock(), BigDecimal.valueOf(stock.getPrice()).setScale(2, RoundingMode.HALF_EVEN));
-				}
+	private void synchroniseCurrentPrices(List<StockReportElement> stockElementList) {
+			for (StockReportElement stock : stockElementList) {
+					if (stock.getCurrentPrice() == null) 
+							stock.setCurrentPrice(stock.getAcquiredPrice()); // hack. 0% growth
 			}
 	}
 
@@ -204,41 +210,33 @@ public class Processor {
 			logger.error("Nothing to delete!");
 		}
 	}
+	
+	public int getStockPortfolio(String username, String password) throws InterruptedException, ExecutionException {
+		return getStockPortfolio(username, password, null);
+	}
 
-	public int getStockPortfolio(String username, String password) {
+	public int getStockPortfolio(String username, String password, Set<Holding> userHoldings) throws InterruptedException, ExecutionException {
 		// retrieve the user details to get existing allotment
 		//fillTheDatabase(); // fill up with dummy data. look at a way to do this on startup in Spring (must be a way!)
-		User theUser = userService.getUser(username);
-		Set<Holding> userHoldings = userService.getUserHoldings(theUser); // A
-
-		Map<String, BigDecimal> latestPrices = new HashMap<String, BigDecimal>();
-		latestPrices.put("WBC", new BigDecimal(34.01).setScale(2, RoundingMode.HALF_EVEN));
-		latestPrices.put("VAS", new BigDecimal(77.12).setScale(2, RoundingMode.HALF_EVEN));
-		// we don't have a stockset, buy we have a json which can be morphed into one
-		
-		StockSet stockSet = new StockSet();
-		List<Stock> stockList = new ArrayList<Stock>();
-		// hacky
-		for (Holding holding : userHoldings) {
-			Stock stock = new Stock();						
-			stock.setDateAdded(holding.getDateAcquired().toString()); // do this later
-			stock.setPrice(Float.valueOf(holding.getPrice().floatValue()));
-			stock.setStock(holding.getCode());
-			stockList.add(stock);
+		int num = 0; 
+		if (userHoldings == null) {
+			User theUser = userService.getUser(username);
+			userHoldings = userService.getUserHoldings(theUser); // A
 		}
-		stockSet.setStocks(stockList);
-		constructChart(stockSet, latestPrices);
+		num = userHoldings.size();
+		List<StockReportElement> stockElementList = toStockElementList(userHoldings, getLatestPrices(userHoldings));
+		constructChart(stockElementList);
 
-		return userHoldings.size();
+		return num;
 	}
 	
 	// Test the hell out of this....
-	private Map<String, BigDecimal> getLatestPrices(List<Stock> stocks) throws InterruptedException, ExecutionException {
+	private Map<String, BigDecimal> getLatestPrices(Set<Holding> holdings) throws InterruptedException, ExecutionException {
 		Map<String, BigDecimal> returnedPrices = new HashMap<String, BigDecimal>();
 		Map<String, Future<String>> waitForPrices = new HashMap<String, Future<String>>();
-		for (Stock stock: stocks) {
-			Future<String> currentPrice = stockPriceRetriever.retrieveQuote(stock.getStock());
-			waitForPrices.put(stock.getStock(), currentPrice);			
+		for (Holding stock: holdings) {
+			Future<String> currentPrice = stockPriceRetriever.retrieveQuote(stock.getCode());
+			waitForPrices.put(stock.getCode(), currentPrice);			
 		}
 		// now we just get all our values that have been computed in parallel 
 		for (Map.Entry<String, Future<String>> entry : waitForPrices.entrySet())

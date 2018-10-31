@@ -2,6 +2,7 @@ package com.rohan.stockapp.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import com.rohan.stockapp.service.Utils;
 
@@ -10,12 +11,11 @@ public abstract class BaseReportElement {
 	//Code	Purchase date	Quote date	Now price	Movement (price)	Movement (percentage)
 	
 	BaseReportElement() {
-		System.err.println();
 	}
 	
 	
 	
-	public BaseReportElement(LocalDate dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice, Integer numberOfUnits) {
+	public BaseReportElement(LocalDateTime dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice, Integer numberOfUnits) {
 		super();
 		this.dateAcquired = dateAcquired;
 		this.code = code;
@@ -26,7 +26,7 @@ public abstract class BaseReportElement {
 
 
 
-	LocalDate dateAcquired;	
+	LocalDateTime dateAcquired;	
 	
 	String code;
 	
@@ -66,11 +66,11 @@ public abstract class BaseReportElement {
 
 
 
-	public LocalDate getDateAcquired() {
+	public LocalDateTime getDateAcquired() {
 		return dateAcquired;
 	}
 
-	public void setDateAcquired(LocalDate dateAcquired) {
+	public void setDateAcquired(LocalDateTime dateAcquired) {
 		this.dateAcquired = dateAcquired;
 	}
 

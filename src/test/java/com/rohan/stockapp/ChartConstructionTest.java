@@ -11,6 +11,7 @@ import java.math.RoundingMode;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -457,10 +458,10 @@ public class ChartConstructionTest {
 	  private List hackStocks() {
 		  List<StockReportElement> stocks = new ArrayList<>();
 		  StockReportElement[] stok = new StockReportElement[4];
-		  stok[0] = new StockReportElement(LocalDate.of(2014, Month.JANUARY, 1), "VAS", new BigDecimal(68.00), new BigDecimal(72.10), 10);
-		  stok[1] = new StockReportElement(LocalDate.of(2015, Month.JULY, 11), "WBC", new BigDecimal(27.00), new BigDecimal(30.50), 20);
-		  stok[2] = new StockReportElement(LocalDate.of(2015, Month.MAY, 14), "KGN", new BigDecimal(2.22), new BigDecimal(3.00), 30);
-		  stok[3] = new StockReportElement(LocalDate.of(2013, Month.MAY, 23), "CBA", new BigDecimal(67.00), new BigDecimal(69.50), 40);
+		  stok[0] = new StockReportElement(LocalDateTime.of(2014, Month.JANUARY, 1,0,0,0), "VAS", new BigDecimal(68.00), new BigDecimal(72.10), 10);
+		  stok[1] = new StockReportElement(LocalDateTime.of(2015, Month.JULY, 11,0,0,0), "WBC", new BigDecimal(27.00), new BigDecimal(30.50), 20);
+		  stok[2] = new StockReportElement(LocalDateTime.of(2015, Month.MAY, 14,0,0,0), "KGN", new BigDecimal(2.22), new BigDecimal(3.00), 30);
+		  stok[3] = new StockReportElement(LocalDateTime.of(2013, Month.MAY, 23,0,0,0), "CBA", new BigDecimal(67.00), new BigDecimal(69.50), 40);
 		  return Arrays.asList(stok);
 	  }
 	  
