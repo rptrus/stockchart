@@ -60,15 +60,24 @@ public class ResourceController {
 		status.setComments("Processed request successfully");
 		return new ResponseEntity<Status>(status, requestStatus);
 	}
-	
-	@Deprecated
+
+	// add to existing holdings already saved
 	@PostMapping(value="/add", consumes = "application/json", produces = "application/json")
-	public ResponseEntity<String> add(@RequestBody String json) throws JsonParseException, JsonMappingException, IOException {
-		processor.addStock(json);
+	public ResponseEntity<Status> add(@RequestHeader("X-username") String username, @RequestHeader("X-password") String password, @RequestBody String json) throws JsonParseException, JsonMappingException, IOException, InterruptedException, ExecutionException {
+		Status status = new Status();
+		boolean ok = processor.addStock(json, username, password);
+		HttpStatus requestStatus = HttpStatus.OK;
+		if (ok) {
+			status.setComments("Processed added stock");
+		} else {
+			requestStatus = HttpStatus.BAD_REQUEST;
+			status.setComments("Stock already exists!");
+		}
 		System.out.println(json);
-		return new ResponseEntity<String>("{ \"status\" : \"Work in progress!\" }", HttpStatus.OK);
+		return new ResponseEntity<Status>(status, requestStatus);
 	}
 	
+	// synchronise to the JSON provided
 	@PostMapping(value="/addmulti", consumes = "application/json", produces = "application/json")
 	public ResponseEntity<Status> addmulti(@RequestHeader("X-username") String username, @RequestHeader("X-password") String password, @RequestBody String json) throws JsonParseException, JsonMappingException, IOException, InterruptedException, ExecutionException {
 		Status status = new Status();

@@ -2,8 +2,6 @@ package com.rohan.stockapp.service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.net.URISyntaxException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -19,7 +17,6 @@ import java.util.stream.Collectors;
 
 import javax.transaction.Transactional;
 
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,13 +61,30 @@ public class Processor {
 	
 	@Autowired
 	private HoldingRepository holdingRepository;
-	
-	public void addStock(String json) throws JsonParseException, JsonMappingException, IOException {
+
+	// TODO, add stocks
+	public boolean addStock(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException, InterruptedException, ExecutionException {
 		StockAdd stockAdd = objectmapper.readValue(json, StockAdd.class);
+		User theUser = userService.getUser(username);
+		Set<Holding> userHoldings = userService.getUserHoldings(theUser); // A
+		for (Holding holding: userHoldings) {
+			if (holding.getCode().equals(stockAdd.getStock())) {				
+				// problem
+				logger.error("Stock code {} already exists!");
+				return false;
+			}
+		}
 		System.out.println(stockAdd);
-		// Add it to the Database
-		// Process to the ChartConstruct
-//		constructChart(stockAdd);
+		Holding newHolding = new Holding();
+		newHolding.setCode(stockAdd.getStock());
+		newHolding.setDateAcquired(LocalDateTime.ofInstant(Instant.parse(stockAdd.getDateAdded()), ZoneId.systemDefault()));
+		newHolding.setPrice(new BigDecimal(stockAdd.getPrice()));
+		newHolding.setNumberOfUnits(stockAdd.getNumberOfUnits());
+		newHolding.setUser(theUser);
+		//newHolding.setQuote(quote);		
+		userHoldings.add(newHolding);
+		constructChart(toStockElementList(userHoldings, getLatestPrices(userHoldings)));
+		return true;
 	}
 	
 	public int addStockMulti(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException, InterruptedException, ExecutionException {
@@ -107,15 +121,16 @@ public class Processor {
 			userHoldings.add(newHolding);
 			//theUser.setHoldings(userHoldings);			
 			holdingRepository.save(newHolding);
+			holdingRepository.flush();
 			numberOfHoldings++;
 		}
-		for (Holding deleteStock : myRemList) {			 
-			java.util.Iterator<Holding> iter = userHoldings.iterator();
-			while (iter.hasNext()) {
-				Holding holding = iter.next();
+		for (Holding deleteStock : myRemList) {
+			java.util.Iterator<Holding> userHoldingsIterator = userHoldings.iterator();
+			while (userHoldingsIterator.hasNext()) {
+				Holding holding = userHoldingsIterator.next();
 				if (holding.getCode().equals(deleteStock.getCode())) {
 					System.out.println("We have a match - now we can delete "+holding.getCode());
-					userHoldings.remove(holding);
+					userHoldingsIterator.remove();
 					holdingRepository.save(holding);
 					numberOfHoldings--;
 				}
