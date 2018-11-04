@@ -6,9 +6,11 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.net.MalformedURLException;
 import java.sql.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -22,6 +24,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.function.Consumer;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jfree.chart.ChartColor;
@@ -32,16 +36,21 @@ import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.CombinedDomainCategoryPlot;
+import org.jfree.chart.renderer.category.AbstractCategoryItemRenderer;
 import org.jfree.chart.renderer.category.BarRenderer;
 import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.chart.renderer.category.StandardBarPainter;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import com.itextpdf.text.BadElementException;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
@@ -61,7 +70,9 @@ import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfPageEventHelper;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
+import com.mysql.jdbc.log.Log;
 import com.rohan.stockapp.dto.StockReportElement;
+import com.rohan.stockapp.enums.ReportColors;
 import com.rohan.stockapp.json.Stock;
 import com.rohan.stockapp.json.StockAdd;
 import com.rohan.stockapp.json.StockSet;
@@ -69,236 +80,156 @@ import com.rohan.stockapp.json.StockSet;
 @Component
 public class ChartConstruction {
 	
-	//@Autowired
-	//PdfWriter writer;
+	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	
-	//@Autowired
-	//Document document;
+	@Value("${marginLeft:36}")	 
+	Float marginLeft;
+	@Value("${marginRight:36}")
+	Float marginRight;
+	@Value("${marginTop:54}")
+	Float marginTop;
+	@Value("${marginBottom:36}")
+	Float marginBottom;
 	
-	final String BASE_DIR=File.separatorChar+"output"; // can have this as a program argument
+	@Value("${portFolioAllocationPagePositionX:38}")
+	Integer portFolioAllocationPagePositionX;
+	@Value("${portFolioAllocationPagePositionY:300}")
+	Integer portFolioAllocationPagePositionY;	
+	@Value("${performancePagePositionX:38}")
+	Integer performancePagePositionX;
+	@Value("${performancePagePositionY:38}")
+	Integer performancePagePositionY;	
+	
+	@Value("${bgImage}")
+	private String backgroundImageFile;
+	
+	@Value("${elementtwidth:450}")
+	private Integer elementWidth;
+	
+	@Value("${elementheight:250}")
+	private Integer elementHeight;
+	
+	Consumer<ChartThing> aFunc;
+	Consumer<ChartThing> bFunc;
 	
     Font bfBold12 = FontFactory.getFont("Verdana", 8, Font.BOLD);
     Font bfNormal = FontFactory.getFont("Verdana", 8, Font.NORMAL);
-    
-    final String BG =BASE_DIR+File.separatorChar+"ferny.jpg";
+    Font bold = new Font(FontFamily.HELVETICA, 12, Font.BOLD);
+    java.awt.Font smallVerdana = new java.awt.Font("Verdana", Font.NORMAL, 6);    
 	
-	public void makePDFChart(List<StockReportElement> stockElementList) {
-		  String fileName = BASE_DIR+File.separatorChar+"MyChart.pdf";
-		  
+	public void makePDFChart(List<StockReportElement> stockElementList, String fullPathFilename) {
 		  PdfWriter writer = null;
+		  Document document = new Document(PageSize.A4, marginLeft, marginRight, marginTop, marginBottom);
 		  
-	        	 // step 1
-		        Document document = new Document(PageSize.A4, 36, 36, 54, 36);
-		        try {
-		           
-		            // step 2
-		            writer = PdfWriter.getInstance(document, new FileOutputStream(
-		                    fileName));
-		            
-		            Paragraph paragraph = new Paragraph();
-	           
+	      try {
+	    	  writer = PdfWriter.getInstance(document, new FileOutputStream(fullPathFilename));
+	          document.open();
+	          addTransparentBackground(writer);
+	          addEmptyLine(document,  1);
+              
+	          Paragraph p = new Paragraph("Report Date:\t\t\t\t"+Utils.ddMMMyyyHHmm.format(Utils.getCurrentDate()), bold );
+              p.setAlignment(Element.ALIGN_JUSTIFIED);
+              document.add(p);
+              addEmptyLine(document, 2);
+              
+              document.add(stockStatsTable(stockElementList));
+              addEmptyLine(document,  1);
+              
+              addTemplateToPage(writer, stockElementList, 0, 450, 250, 38, 300); 
+              addTemplateToPage(writer, stockElementList, 1, 450, 250, 38, 38);
 
-	             //addEmptyLine(document,  2);
-		            
-		            document.open();
-	             
-	             // transparency
-	             
-	             PdfContentByte canvas = writer.getDirectContentUnder();
-	             Image bgimage = Image.getInstance(BG);
-	             //image.scaleAbsolute(PageSize.A4.rotate());
-	             bgimage.scaleAbsoluteHeight(850);
-	             bgimage.setAbsolutePosition(0, 0);	             
-	             canvas.saveState();
-	             PdfGState state = new PdfGState();	             
-	             state.setFillOpacity(0.3f);
-	             canvas.setGState(state);
-	             canvas.addImage(bgimage);
-	             canvas.restoreState();
-	             
-	             //
-	             	             
-	             
-	             addEmptyLine(document,  1);
-	             //document.add(merchantDetailTable(re, reportType));
-	             //document.add(table1(MerchantNo));           
-	             
-	             
-	                SimpleDateFormat format1 = new SimpleDateFormat("yyyymmdd");
-	                SimpleDateFormat format2 = new SimpleDateFormat("dd MMM yyyy HH:mm");
-	                
-	                Calendar cal = Calendar.getInstance();
-	                cal.setTime(new java.util.Date());
-	                java.util.Date edate = cal.getTime();	                
-	                
-	           //insert column headings
-	           // comes from args
-	                Paragraph p;
-	                Font bold = new Font(FontFamily.HELVETICA, 12, Font.BOLD);
-	                p = new Paragraph("Report Date:\t\t\t\t"+format2.format(edate), bold );
-	                p.setAlignment(Element.ALIGN_JUSTIFIED);
-	                document.add(p);
-	                addEmptyLine(document, 2);
-	                         
-	             document.add(stockStatsTable(stockElementList));
-	             
-	             addEmptyLine(document,  1);
-	             
-//	            JFreeChart piechart = makePieChart(hackStocks());
-//	 			BufferedImage bufferedImagePie = piechart.createBufferedImage(300, 300);
-//	 			Image imagePie = Image.getInstance(writer, bufferedImagePie, 1.0f);
-//	 			document.add(imagePie);
-
-	             PdfContentByte contentByte0 = writer.getDirectContent();
-	             
-		            int width0=450;
-		            int height0 = 250;
-		            int stretchFactor0 = 0, stretchFactor20 =0;            
-		            { stretchFactor0 = 0; stretchFactor20=0; }	            
-		            PdfContentByte contentByteLine0 = writer.getDirectContent();
-		            PdfTemplate templateLine0 = contentByteLine0.createTemplate(width0, height0+stretchFactor0);
-		            Graphics2D graphics2dLine0 = templateLine0.createGraphics(width0, height0+stretchFactor0,
-		            		new DefaultFontMapper());
-		            Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, width0,
-		                    height0+stretchFactor0); // make bigger
-	            makePieChart(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
-	            graphics2dLine0.dispose();
-	            contentByte0.addTemplate(templateLine0, 38, 300); // positioning on page
-
-	 			
-	             
-	            addEmptyLine(document,  4);
-	            	            
-	            PdfContentByte contentByte = writer.getDirectContent();
-	 			
-	            int width=450;
-	            int height = 250;
-	            int stretchFactor = 0, stretchFactor2 =0;            
-	            { stretchFactor = 0; stretchFactor2=0; }	            
-	            PdfContentByte contentByteLine = writer.getDirectContent();
-	            PdfTemplate templateLine = contentByteLine.createTemplate(width, height+stretchFactor);
-	            Graphics2D graphics2dLine = templateLine.createGraphics(width, height+stretchFactor,
-	            		new DefaultFontMapper());
-	            Rectangle2D rectangle2dLine = new Rectangle2D.Double(0, 0, width,
-	                    height+stretchFactor); // make bigger
-
-	            createPerformanceGraph(2, stockElementList).draw(graphics2dLine, rectangle2dLine);
-	             
-	            graphics2dLine.dispose();
-	            contentByte.addTemplate(templateLine, 38, 38); // positioning on page
-	            
-	             
-	            addEmptyLine(document,  1);
-	             
-	            document.close();
-	            System.out.println("This DOCUMENT is CLOSED - buh bye");
-	        } catch (Exception ex) {
-	        	System.out.println(ex);
-	        	if (document!=null)
-	        		document.close();
-	        } 
-	
+              //addTemplateToPage(writer, stockElementList, this::myFirst, 450, 250, 38, 300);
+              //addTemplateToPage(writer, stockElementList, this::mySecond, 450, 250, 38, 38);
+            
+              addEmptyLine(document,  1);
+              
+              document.close();
+              logger.info("Document now closed.");
+        } catch (Exception ex) {
+        	logger.error("Exception! ",ex);
+        	if (document!=null)
+        		document.close();
+        }
 	}
 	
-	private JFreeChart createPerformanceGraph(int type, List<StockReportElement> stockList) { //RT
-        
-        System.out.println("TYPE: "+type);
-
-        final CategoryDataset dataset1 = createDatasetCHCPercentage(type, stockList);
+	private void addTemplateToPage(PdfWriter writer, List<StockReportElement> stockElementList, int type, Integer width, Integer height, Integer pagePositionX, Integer pagePositionY) {		
+		int stretchFactor0 = 0;
+        PdfContentByte contentByte0 = writer.getDirectContent();
+        PdfContentByte contentByteLine0 = writer.getDirectContent();
+        PdfTemplate templateLine0 = contentByteLine0.createTemplate(elementWidth, elementHeight+stretchFactor0);
+        Graphics2D graphics2dLine0 = templateLine0.createGraphics(elementWidth, elementHeight+stretchFactor0,
+          		new DefaultFontMapper());
+        Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, elementWidth, elementHeight+stretchFactor0);
+        if (type == 0) makePortfolioAllocationPieChart(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
+        if (type == 1) createPerformanceGraph(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
+        graphics2dLine0.dispose();
+        contentByte0.addTemplate(templateLine0, pagePositionX, pagePositionY); // positioning on page
+	}
+	
+	private void addTransparentBackground(PdfWriter writer) throws MalformedURLException, IOException, DocumentException {
+        PdfContentByte canvas = writer.getDirectContentUnder();
+        Image bgimage = Image.getInstance(backgroundImageFile);
+        bgimage.scaleAbsoluteHeight(850);
+        bgimage.setAbsolutePosition(0, 0);
+        canvas.saveState();
+        PdfGState state = new PdfGState();	             
+        state.setFillOpacity(0.3f);
+        canvas.setGState(state);
+        canvas.addImage(bgimage);
+        canvas.restoreState();		
+	}
+	
+	private JFreeChart createPerformanceGraph(List<StockReportElement> stockList) {
+        final CategoryDataset dataset1 = createDatasetCHCPercentage(stockList);
         final NumberAxis rangeAxis1 = new NumberAxis("Performance");
         rangeAxis1.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-        //final BarRenderer renderer1 = new BarRenderer();
-        
-        org.jfree.chart.renderer.category.AbstractCategoryItemRenderer renderer1 = null;
-        
-        if (type==1) { // XXX not used for stocks
-            /*final LineAndShapeRenderer */renderer1 = new LineAndShapeRenderer();
-        }
-        else if (type==2) {
-            /*final BarRenderer */renderer1 = /*new StackedBarRenderer();*/new BarRenderer();	            
-        }
-        //renderer1.setBaseToolTipGenerator(new StandardCategoryToolTipGenerator());
+        AbstractCategoryItemRenderer renderer1 = new BarRenderer();
 
         final CategoryPlot subplot1 = new CategoryPlot(dataset1, null, rangeAxis1, renderer1);
         subplot1.setDomainGridlinesVisible(true);
-        ValueAxis yAxis =subplot1.getRangeAxis(); // show percentage y axis to 100
+        ValueAxis yAxis =subplot1.getRangeAxis();
         yAxis.setRange(0, 100);
-
-        if (type==2) {
-            ((BarRenderer) subplot1.getRenderer()).setBarPainter(new StandardBarPainter());
-            /*
-        BarRenderer br = (BarRenderer) subplot1.getRenderer(); 
-        br.setMaximumBarWidth(0.2);// NOT WORKING?!? why?
-        br.setItemMargin(0.1);
-             */
-            BarRenderer barrenderer = (BarRenderer)subplot1.getRenderer();
-            barrenderer.setMaximumBarWidth(0.085f);
-            //barrenderer.setBase(-100);
-        }
-
-        renderer1.setSeriesPaint(0, new Color(0x0191C8)); //sky blue 0x7EB5D6 // yeah
-        //renderer1.setSeriesPaint(0, new Color(0xCCCC99)); //lightbrowny
-        //renderer1.setSeriesPaint(1, new Color(0x6A6A5A));
-        //renderer1.setSeriesPaint(1, new Color(0xf5f5f5)); // light gray
-
+        ((BarRenderer) subplot1.getRenderer()).setBarPainter(new StandardBarPainter());
+        BarRenderer barrenderer1 = (BarRenderer)subplot1.getRenderer();
+        barrenderer1.setMaximumBarWidth(0.085f);
+        renderer1.setSeriesPaint(0, new Color(ReportColors.COOLBLUE.getReportColor()));
         
-        final CategoryDataset dataset2 = createDatasetCHCAmount(type, /*hackStocks()*/stockList);
+        final CategoryDataset dataset2 = createDatasetCHCAmount(stockList);
         final NumberAxis rangeAxis2 = new NumberAxis("Holding Amt");             
         rangeAxis2.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
         final BarRenderer renderer2 = new BarRenderer();
-        //renderer2.setBase(-50); // need to set this as per lowest value. good use of findFirst here
-        //renderer2.setBaseToolTipGenerator(new StandardCategoryToolTipGenerator());
         final CategoryPlot subplot2 = new CategoryPlot(dataset2, null, rangeAxis2, renderer2);
         subplot2.setDomainGridlinesVisible(true);
         ((BarRenderer) subplot2.getRenderer()).setBarPainter(new StandardBarPainter());
-        BarRenderer barrenderer = (BarRenderer)subplot2.getRenderer();
-        barrenderer.setMaximumBarWidth(0.085f);
-        //barrenderer.setBase(-100);
+        BarRenderer barrenderer2 = (BarRenderer)subplot2.getRenderer();
+        barrenderer2.setMaximumBarWidth(0.085f);
 
-
-        final CategoryAxis domainAxis = new CategoryAxis(type==1 ? "Day":"Currency");
+        final CategoryAxis domainAxis = new CategoryAxis("Currency");
         
-        //
         domainAxis.setTickLabelPaint(Color.BLACK);
-        domainAxis.setTickLabelFont(new java.awt.Font("Verdana", Font.NORMAL, 6));
-        renderer2.setSeriesPaint(0, new Color(0x5cbf56)); // yellow 0xFFCC00 // yeah
-        //
+        domainAxis.setTickLabelFont(smallVerdana);
+        renderer2.setSeriesPaint(0, new Color(ReportColors.GREEN.getReportColor()));
         
         final CombinedDomainCategoryPlot plot = new  CombinedDomainCategoryPlot(domainAxis);
-
 
         plot.add(subplot1, 1);
         plot.add(subplot2, 1);        
         plot.setGap(18);
 
-        String title="Performance Graph";
-        /*
         final JFreeChart chart = new JFreeChart(
-        title,
-        plot);
-        */
-      final JFreeChart chart = new JFreeChart(
-              title,
+    		  "Performance Graph",
               new java.awt.Font("SansSerif", Font.BOLD, 12),
               plot,
               true
-          );
-      //chart.setBackgroundPaint(Color.WHITE);	      
-      //chart.setBackgroundPaint(new ChartColor(124, 146, 138));
-        
+        );
         return chart;
   }
 	  
-	private JFreeChart makePieChart(List<StockReportElement> stockList) {
+	private JFreeChart makePortfolioAllocationPieChart(List<StockReportElement> stockList) {
 		  DefaultPieDataset dataset = new DefaultPieDataset( );
 
 		  BigDecimal accumulated = BigDecimal.ZERO;
 		  for (StockReportElement stock : stockList) {			  
-			  Random rand = new Random();
-			  int size = stockList.size();
-			  int bound = 100/size;
-			  
-			  // TODO  Compute this result outside of the presentation layer
 			  BigDecimal shareHolding = stock.getCurrentPrice().multiply(BigDecimal.valueOf(stock.getNumberOfUnits()));
 			  accumulated = accumulated.add(shareHolding);
 		  }
@@ -317,36 +248,14 @@ public class ChartConstruction {
 	         true,
 	         false);
 	        
-	      //chart.setBackgroundPaint(ChartColor.LIGHT_GRAY);
 	      chart.setBackgroundPaint(new ChartColor(224, 224, 224));
-	      //chart.setBackgroundPaint(new ChartColor(124, 146, 138));
-	      
-	      int width = 640;   /* Width of the image */
-	      int height = 480;  /* Height of the image */
-	      
 	      return chart;
 	  }
 	
-    public CategoryDataset createDatasetCHCPercentage(int type, List<StockReportElement> stockList) {
-
-        //List currencyVector = re.vdccCardholderCurrency;
-        System.out.println("ABOUT TO SORT1!");
-        
+    public CategoryDataset createDatasetCHCPercentage(List<StockReportElement> stockList) {
           final DefaultCategoryDataset result = 
-           new DefaultCategoryDataset();
-          
-//        for (int i = 0; i < currencyVector.size(); i++) {
-//            if (new Double(((CurrencyData)currencyVector.get(i)).dccOptInAmtPercentage).doubleValue() > 0) // RT. jose
-//                result.addValue(new Double(((CurrencyData)currencyVector.get(i)).dccOptInAmtPercentage), "Opt in percentage", ((CurrencyData)currencyVector.get(i)).currencyCode);            
-//        }
-          
+          new DefaultCategoryDataset();
           final String rowKey = "Increase %";
-/*	          
-          result.addValue(20, "Increase %", "WBC");
-          result.addValue(26, "Increase %", "WBC");
-          result.addValue(10, "Increase %", "VAS");
-          result.addValue(90, "Increase %", "VAS");
-*/
           
           for (StockReportElement aStockReportElement: stockList) {
         	  result.addValue(
@@ -358,121 +267,47 @@ public class ChartConstruction {
         			  aStockReportElement.getCode()
         			  );
           }
-
         return result;
     }
     
-    public CategoryDataset createDatasetCHCAmount(int type, List<StockReportElement> stockList) {
-        
-        //List currencyVector = re.vdccCardholderCurrency;        
-        System.out.println("ABOUT TO SORT2!");
-
-          final DefaultCategoryDataset result 
-           = new DefaultCategoryDataset();
-          /*
-          result.addValue(Double.valueOf("15.5"), "Stock Code", "WBC");
-          result.addValue(Double.valueOf("35.5"), "Stock Code", "VAS");
-          */
-          
+    public CategoryDataset createDatasetCHCAmount(List<StockReportElement> stockList) {
+          final DefaultCategoryDataset result = new DefaultCategoryDataset();
           final String rowKey = "Equity held";
           
           for (StockReportElement aStockReportElement: stockList) {
         	  result.addValue(
-        			  aStockReportElement.getCurrentPrice()
-        					  	.doubleValue(), 
+        			  aStockReportElement.getCurrentPrice().doubleValue(), 
         			  rowKey, 
         			  aStockReportElement.getCode()
         			  );
           }
-
-        return result;
+          return result;
     }
 
 	  
 	  private PdfPTable stockStatsTable(List<StockReportElement> stockList) throws ParseException
 	    {
-
-	        String daCurrency= null;
-	        
 	        float[] columnWidths = {3.5f, 2f, 2f, 2f, 2f};
-	           //create PDF table with the given widths
 	           PdfPTable table = new PdfPTable(columnWidths);
-	           //PdfPTable table = new PdfPTable(5);
-	           // set table width a percentage of the page width
 	           table.setWidthPercentage(100f);
-	           //Font bfBold12 = new Font(FontFamily.HELVETICA, 8, Font.BOLD, new BaseColor(0, 0, 0));
-	           //Font bfNormal = new Font(FontFamily.HELVETICA, 8, Font.NORMAL, new BaseColor(0, 0, 0));
-	           
-	              
-//	             Font bfBold12 = FontFactory.getFont("Verdana", 8, Font.BOLD);
-//	             Font bfNormal = FontFactory.getFont("Verdana", 8, Font.NORMAL);
-	           
-	                SimpleDateFormat format1 = new SimpleDateFormat("yyyymmdd");
-	                SimpleDateFormat format2 = new SimpleDateFormat("dd MMM yyyy");
-	                
-	                Calendar cal = Calendar.getInstance();
-	                cal.setTime(new java.util.Date());
-	                java.util.Date edate = cal.getTime();
-	                cal.add(Calendar.DATE, -3);
-	                java.util.Date sdate = cal.getTime();
-	                
-	                //Date sdate = format1.parse(startDateArg);
-	                //Date edate = format1.parse(endDateArg);	                
-	                
-	                
-	           //insert column headings
-	           // comes from args
 	           insertCell(table, "Code: ", Element.ALIGN_LEFT, 1, bfBold12, Boolean.TRUE);
 	           insertCell(table, "Acquired Price", Element.ALIGN_RIGHT, 1, bfBold12, Boolean.TRUE);
 	           insertCell(table, "Current Price", Element.ALIGN_RIGHT, 1, bfBold12, Boolean.TRUE);
 	           insertCell(table, "Movement (price)", Element.ALIGN_RIGHT, 1, bfBold12, Boolean.TRUE);
 	           insertCell(table, "Movement (percent)", Element.ALIGN_RIGHT, 1, bfBold12, Boolean.TRUE);
-	           
 	           stockList.stream().filter(StockReportElement::active).forEach(stock->addStock(table, stock));
-	           
-	           
-	          return table;
+	           return table;
 	    }
 	  
 	  private void addStock(PdfPTable table, StockReportElement stock) {
           insertCell(table, stock.getCode(), Element.ALIGN_LEFT, 1, bfNormal);           
           insertCell(table, stock.getAcquiredPrice().setScale(2,RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);
           insertCell(table, stock.getCurrentPrice().setScale(2,RoundingMode.HALF_UP).toString(), Element.ALIGN_RIGHT, 1, bfNormal);
-          Float total = 100f; 
           insertCell(table, stock.getCurrentPrice().subtract(stock.getAcquiredPrice()).setScale(2, RoundingMode.HALF_EVEN)+"", Element.ALIGN_RIGHT, 1, bfNormal); // % by value 
           insertCell(table, (stock.getCurrentPrice().divide(stock.getAcquiredPrice(),4,RoundingMode.HALF_EVEN)
     				.subtract(BigDecimal.ONE))
     				.multiply(BigDecimal.TEN.pow(2)).setScale(2).toString()+"%", Element.ALIGN_RIGHT, 1, bfNormal); // % by number		  
 	  }
-	  	  
-	  private List<StockReportElement> addStocksMulti(StockSet stockSet, Map<String, BigDecimal> latestPrices) {
-		  List<Stock> listOfStocks = stockSet.getStocks();		  
-		  List<StockReportElement> stocks = new ArrayList<>(); // TODO - read existing holdings to add. For now, just create single array
-		  for (Stock stock: listOfStocks) {
-			  StockReportElement stok = new StockReportElement();
-			  int yyyy = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 0,4)); 
-			  int mm = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 5,7));
-			  int dd = Integer.valueOf(StringUtils.substring(stock.getDateAdded(), 8,10)); // add more error checking later
-			  int hh = 0, mi = 0, ss = 0;
-			  BigDecimal buyPrice = new BigDecimal(stock.getPrice()).setScale(2, RoundingMode.HALF_EVEN);
-			  stok = new StockReportElement(LocalDateTime.of(yyyy, mm, dd, hh, mi, ss), stock.getStock(), buyPrice, latestPrices.get(stock.getStock()), stock.getNumberOfUnits()); // 4th param get from regex data
-			  stocks.add(stok);
-		  }
-		  return stocks;
-	  }
-
-	  private List<StockReportElement> hackStocks() {
-		  List<StockReportElement> stocks = new ArrayList<>();
-		  StockReportElement[] stok = new StockReportElement[4];
-		  int hh = 0, mi = 0, ss = 0;
-		  stok[0] = new StockReportElement(LocalDateTime.of(2014, Month.JANUARY, 1, hh, mi, ss), "VAS", new BigDecimal(68.00), new BigDecimal(72.10), 10);
-		  stok[1] = new StockReportElement(LocalDateTime.of(2015, Month.JULY, 11, hh, mi, ss), "WBC", new BigDecimal(27.00), new BigDecimal(30.50), 20);
-		  stok[2] = new StockReportElement(LocalDateTime.of(2015, Month.MAY, 14, hh, mi, ss), "KGN", new BigDecimal(2.22), new BigDecimal(3.00), 30);
-		  stok[3] = new StockReportElement(LocalDateTime.of(2013, Month.MAY, 23, hh, mi, ss), "CBA", new BigDecimal(67.00), new BigDecimal(69.50), 40);
-		  return Arrays.asList(stok);
-	  }
-
-	  
 	  
 	  // HELPER FUNCTIONS
 	  
@@ -481,11 +316,8 @@ public class ChartConstruction {
 	  }
 	  
 	  private static void insertCell(PdfPTable table, String text, int align, int colspan, Font font, boolean header){
-          //create a new cell with the specified Text and Font
           PdfPCell cell = new PdfPCell(new Phrase(text.trim(), font));
-          //set the cell alignment
           cell.setHorizontalAlignment(align);
-          //set the cell column span in case you want to merge two or more cells
           cell.setColspan(colspan);
           //in case there is no text and you wan to create an empty row
           if(text.trim().equalsIgnoreCase("")){
@@ -493,7 +325,6 @@ public class ChartConstruction {
           }
           cell.setBackgroundColor(new BaseColor(249, 255, 230,0));
           if (header) cell.setBackgroundColor(new BaseColor(237, 255, 179,0)); 
-          //add the call to the table
           table.addCell(cell);
            
          }
@@ -504,10 +335,5 @@ public class ChartConstruction {
 	          paragraph.add(new Paragraph(" "));
 	          document.add(paragraph);
 	        }
-	    }
-	  
-	  class TableHeader1 extends PdfPageEventHelper {
-		  
-	  }
-
+	    }	  
 }

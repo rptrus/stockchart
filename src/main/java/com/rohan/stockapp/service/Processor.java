@@ -1,5 +1,6 @@
 package com.rohan.stockapp.service;
 
+import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -15,11 +16,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
 import javax.transaction.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -41,8 +44,11 @@ public class Processor {
 	
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
 	
+	@Value("${filename}")
+	private String fileName;
+	
 	@Autowired
-	ObjectMapper objectmapper;
+	private ObjectMapper objectmapper;
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -83,7 +89,7 @@ public class Processor {
 		newHolding.setUser(theUser);
 		//newHolding.setQuote(quote);		
 		userHoldings.add(newHolding);
-		constructChart(toStockElementList(userHoldings, getLatestPrices(userHoldings)));
+		constructChart(toStockElementList(userHoldings, getLatestPrices(userHoldings)), fileName);
 		return true;
 	}
 	
@@ -138,7 +144,7 @@ public class Processor {
 		}
 		//returnedPrices = getLatestPrices(stockElementList);
 		List<StockReportElement> stockElementList = toStockElementList(userHoldings, getLatestPrices(userHoldings));
-		constructChart(stockElementList); // TODO Have this DB driven, not JSON driven
+		constructChart(stockElementList, fileName); // TODO Have this DB driven, not JSON driven
 		return numberOfHoldings;
 	}
 	
@@ -161,9 +167,9 @@ public class Processor {
 		return userService.getUser(username) != null;
 	}
 	
-	private void constructChart(List<StockReportElement> stockElementList) {
+	private void constructChart(List<StockReportElement> stockElementList, String fullPathFilename) {
 		synchroniseCurrentPrices(stockElementList); // can remove this
-		chart.makePDFChart(stockElementList);
+		chart.makePDFChart(stockElementList, fullPathFilename);
 	}
 	
 	// If we don't have a latest price, then what we will do is set it to the current price and flag an alert
@@ -240,7 +246,7 @@ public class Processor {
 		}
 		num = userHoldings.size();
 		List<StockReportElement> stockElementList = toStockElementList(userHoldings, getLatestPrices(userHoldings));
-		constructChart(stockElementList);
+		constructChart(stockElementList, fileName);
 
 		return num;
 	}
@@ -260,5 +266,5 @@ public class Processor {
 		}
 		return returnedPrices;
 	}
-
+	
 }

@@ -27,33 +27,8 @@ import com.itextpdf.text.pdf.PdfWriter;
 @Configuration
 public class StockappApplication {
 	
-	 @Value("${filename}")
-	 String fileName;
-	 @Value("${marginLeft}")	 
-	 Float marginLeft;
-	 @Value("${marginRight}")
-	 Float marginRight;
-	 @Value("${marginTop}")
-	 Float marginTop;
-	 @Value("${marginBottom}")
-	 Float marginBottom;
-
 	public static void main(String[] args) {
 		SpringApplication.run(StockappApplication.class, args);
-	}
-	
-	@Bean
-	@Scope("prototype")
-	public Document document() {
-		return new Document(PageSize.A4, marginLeft, marginRight, marginTop, marginBottom);
-	}
-	
-	@Bean
-	@Scope("prototype")
-	public PdfWriter pdf() throws FileNotFoundException, DocumentException { 
-        return PdfWriter.getInstance(document(), new FileOutputStream(
-                fileName));
-
 	}
 	
 }
