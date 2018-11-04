@@ -97,35 +97,22 @@ public class Processor {
 		int numberOfHoldings = 0;
 		StockSet stockSet = objectmapper.readValue(json, StockSet.class);
 		System.out.println(stockSet);
-		// retrieve the user details to get existing allotment
-		//fillTheDatabase(); // fill up with dummy data. look at a way to do this on startup in Spring (must be a way!)
 		User theUser = userService.getUser(username);
-		Set<Holding> userHoldings = userService.getUserHoldings(theUser); // A
-		userHoldings.size();
-		// Add it to the Database
-		// TODO - find the codes in the JSON that aren't in the DB
-		Map<String, BigDecimal> returnedPrices = null;
+		Set<Holding> userHoldings = userService.getUserHoldings(theUser);
 		// filter out the things that don't match, leaving the things that are left=new O(N^2) but OK for small porfolios
-		// Next, do the other way, so that we can delete things out too
 		List<Stock> myNewList = stockSet.getStocks().stream().filter(jStock-> userHoldings.stream().noneMatch(dbStock -> dbStock.getCode().equals(jStock.getStock()))  ).collect(Collectors.toList());
 		List<Holding> myRemList = userHoldings.stream().filter(jStock-> stockSet.getStocks().stream().noneMatch(dbStock -> dbStock.getStock().equals(jStock.getCode()))  ).collect(Collectors.toList());
+
 		for (Stock newStock : myNewList) {
 			Instant addDate = Instant.parse(newStock.getDateAdded());
 			LocalDateTime newDate = LocalDateTime.ofInstant(addDate, ZoneId.systemDefault());
-			/*
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-ddTHH:mm");
-			LocalDateTime formatDateTime = LocalDateTime.parse(newStock.getDateAdded(), formatter);
-			*/
-			
 			Holding newHolding = new Holding();
 			newHolding.setCode(newStock.getStock());
 			newHolding.setDateAcquired(newDate);
 			newHolding.setPrice(new BigDecimal(newStock.getPrice()));
 			newHolding.setNumberOfUnits(newStock.getNumberOfUnits());
 			newHolding.setUser(theUser);
-			//newHolding.setQuote(quote);
 			userHoldings.add(newHolding);
-			//theUser.setHoldings(userHoldings);			
 			holdingRepository.save(newHolding);
 			holdingRepository.flush();
 			numberOfHoldings++;
@@ -142,9 +129,8 @@ public class Processor {
 				}
 			}			
 		}
-		//returnedPrices = getLatestPrices(stockElementList);
 		List<StockReportElement> stockElementList = toStockElementList(userHoldings, getLatestPrices(userHoldings));
-		constructChart(stockElementList, fileName); // TODO Have this DB driven, not JSON driven
+		constructChart(stockElementList, fileName);
 		return numberOfHoldings;
 	}
 	
@@ -180,6 +166,7 @@ public class Processor {
 			}
 	}
 
+	// Populate the database for testing - move to junit later
 	public void fillTheDatabase() {
 		List<Map<String, Object>> holdingList = jdbcTemplate.queryForList("select * from holding");
 		System.out.println(holdingList);
@@ -218,12 +205,10 @@ public class Processor {
 		User theUser = userService.getUser(username); //DB
 		Set<Holding> userHoldings = userService.getUserHoldings(theUser);
 		int size = userHoldings.size();
-		if (size >= 1) { // DB must have at least one
-			
+		if (size >= 1) {
 			StockSet stockSet = objectmapper.readValue(json, StockSet.class);
 			Stock stock = stockSet.getStocks().get(0); // we only have one
 			Holding holding2Delete = holdingRepository.findByCode(stock.getStock());
-			//holdingRepository.delete(holding2Delete);
 			if (userHoldings.remove(holding2Delete))
 				holdingRepository.save(holding2Delete);
 			System.out.println("Done");
@@ -237,21 +222,17 @@ public class Processor {
 	}
 
 	public int getStockPortfolio(String username, String password, Set<Holding> userHoldings) throws InterruptedException, ExecutionException {
-		// retrieve the user details to get existing allotment
-		//fillTheDatabase(); // fill up with dummy data. look at a way to do this on startup in Spring (must be a way!)
 		int num = 0; 
 		if (userHoldings == null) {
 			User theUser = userService.getUser(username);
-			userHoldings = userService.getUserHoldings(theUser); // A
+			userHoldings = userService.getUserHoldings(theUser);
 		}
 		num = userHoldings.size();
 		List<StockReportElement> stockElementList = toStockElementList(userHoldings, getLatestPrices(userHoldings));
 		constructChart(stockElementList, fileName);
-
 		return num;
 	}
 	
-	// Test the hell out of this....
 	private Map<String, BigDecimal> getLatestPrices(Set<Holding> holdings) throws InterruptedException, ExecutionException {
 		Map<String, BigDecimal> returnedPrices = new HashMap<String, BigDecimal>();
 		Map<String, Future<String>> waitForPrices = new HashMap<String, Future<String>>();

@@ -6,8 +6,6 @@ import java.time.LocalDateTime;
 
 import com.rohan.stockapp.entity.Holding;
 
-// takes data from entities, Rest Results, computations, a bit of this and that etc
-
 public class StockReportElement extends BaseReportElement {
 	
 	public StockReportElement() {
@@ -19,7 +17,6 @@ public class StockReportElement extends BaseReportElement {
 	}
 
 	// set to true if the stock has already been sold
-	// assuming whole stock is disposed
 	public boolean disposed() {
 		return false;
 	}
@@ -28,7 +25,4 @@ public class StockReportElement extends BaseReportElement {
 		return true;
 	}
 
-	
-// nothing more
-	
 }

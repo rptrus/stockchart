@@ -7,14 +7,7 @@ import java.time.LocalDateTime;
 import com.rohan.stockapp.service.Utils;
 
 public abstract class BaseReportElement {
-	
-	//Code	Purchase date	Quote date	Now price	Movement (price)	Movement (percentage)
-	
-	BaseReportElement() {
-	}
-	
-	
-	
+		
 	public BaseReportElement(LocalDateTime dateAcquired, String code, BigDecimal acquiredPrice, BigDecimal nowPrice, Integer numberOfUnits) {
 		super();
 		this.dateAcquired = dateAcquired;
@@ -24,7 +17,9 @@ public abstract class BaseReportElement {
 		this.numberOfUnits = numberOfUnits;
 	}
 
-
+	public BaseReportElement() {
+		// TODO Auto-generated constructor stub
+	}
 
 	LocalDateTime dateAcquired;	
 	
@@ -35,36 +30,22 @@ public abstract class BaseReportElement {
 	BigDecimal currentPrice;
 	
 	Integer numberOfUnits;
-	
-	//BigDecimal nowPrice;
-	
-	// movementPrice
-	
-	// movementPercentage
-	
+		
 	public BigDecimal getCurrentPrice() {
 		return currentPrice;
 	}
-
-
 
 	public void setCurrentPrice(BigDecimal currentPrice) {
 		this.currentPrice = currentPrice;
 	}
 
-
-
 	public BigDecimal getAcquiredPrice() {
 		return acquiredPrice;
 	}
 
-
-
 	public void setAcquiredPrice(BigDecimal price) {
 		this.acquiredPrice = price;
 	}
-
-
 
 	public LocalDateTime getDateAcquired() {
 		return dateAcquired;
@@ -89,7 +70,5 @@ public abstract class BaseReportElement {
 	public void setNumberOfUnits(Integer numberOfUnits) {
 		this.numberOfUnits = numberOfUnits;
 	}
-
-	
 
 }

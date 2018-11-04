@@ -104,13 +104,9 @@ public class ChartConstruction {
 	private String backgroundImageFile;
 	
 	@Value("${elementtwidth:450}")
-	private Integer elementWidth;
-	
+	private Integer elementWidth;	
 	@Value("${elementheight:250}")
 	private Integer elementHeight;
-	
-	Consumer<ChartThing> aFunc;
-	Consumer<ChartThing> bFunc;
 	
     Font bfBold12 = FontFactory.getFont("Verdana", 8, Font.BOLD);
     Font bfNormal = FontFactory.getFont("Verdana", 8, Font.NORMAL);
@@ -138,8 +134,9 @@ public class ChartConstruction {
               addTemplateToPage(writer, stockElementList, 0, 450, 250, 38, 300); 
               addTemplateToPage(writer, stockElementList, 1, 450, 250, 38, 38);
 
-              //addTemplateToPage(writer, stockElementList, this::myFirst, 450, 250, 38, 300);
-              //addTemplateToPage(writer, stockElementList, this::mySecond, 450, 250, 38, 38);
+              // here we have all the necessary ingredients. now need to pass this in to our charting methods (1&2)
+              //ChartMaker cm1 = preSetup(writer, stockElementList, /*this::myFirst,*/ 450, 250, 38, 300);              
+              //ChartDoer cd1 = new ChartDoer(cm1); // will have the actual chart specific logic
             
               addEmptyLine(document,  1);
               
@@ -152,6 +149,35 @@ public class ChartConstruction {
         }
 	}
 	
+	// WIP
+	private ChartMaker preSetup(PdfWriter writer, List<StockReportElement> stockElementList, /*Runnable method, */int width,
+			int height, int pagePositionX, int pagePositionY) {
+		// TODO Auto-generated method stub
+		int stretchFactor0 = 0;
+        PdfContentByte contentByte0 = writer.getDirectContent();
+        PdfContentByte contentByteLine0 = writer.getDirectContent();
+        PdfTemplate templateLine0 = contentByteLine0.createTemplate(elementWidth, elementHeight+stretchFactor0);
+        Graphics2D graphics2dLine0 = templateLine0.createGraphics(elementWidth, elementHeight+stretchFactor0,
+          		new DefaultFontMapper());
+        Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, elementWidth, elementHeight+stretchFactor0);
+        ChartMaker cm1 = new ChartMaker(graphics2dLine0, rectangle2dLine0, stockElementList);
+        return cm1;
+        //if (type == 0) makePortfolioAllocationPieChart(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
+        //if (type == 1) createPerformanceGraph(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
+        //method.run(); // runs the thing in myFirst or mySecond
+        //graphics2dLine0.dispose();
+        //contentByte0.addTemplate(templateLine0, pagePositionX, pagePositionY); // positioning on page
+
+	}
+	
+	public void myFirst() {
+		
+	}
+	
+	public void mySecond() {
+		
+	}
+
 	private void addTemplateToPage(PdfWriter writer, List<StockReportElement> stockElementList, int type, Integer width, Integer height, Integer pagePositionX, Integer pagePositionY) {		
 		int stretchFactor0 = 0;
         PdfContentByte contentByte0 = writer.getDirectContent();
@@ -223,7 +249,7 @@ public class ChartConstruction {
               true
         );
         return chart;
-  }
+	}
 	  
 	private JFreeChart makePortfolioAllocationPieChart(List<StockReportElement> stockList) {
 		  DefaultPieDataset dataset = new DefaultPieDataset( );
@@ -335,5 +361,5 @@ public class ChartConstruction {
 	          paragraph.add(new Paragraph(" "));
 	          document.add(paragraph);
 	        }
-	    }	  
+	    }
 }
