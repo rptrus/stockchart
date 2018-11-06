@@ -2,13 +2,9 @@ package com.rohan.stockapp.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.security.MessageDigest;
-import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Locale;
-
 import org.apache.commons.codec.digest.DigestUtils;
 
 public class Utils {

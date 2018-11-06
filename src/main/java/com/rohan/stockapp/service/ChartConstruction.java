@@ -3,31 +3,13 @@ package com.rohan.stockapp.service;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
-import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
-import java.sql.Date;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.Month;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.concurrent.Callable;
-import java.util.function.Consumer;
-
-import org.apache.commons.lang3.StringUtils;
 import org.jfree.chart.ChartColor;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
@@ -38,19 +20,15 @@ import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.CombinedDomainCategoryPlot;
 import org.jfree.chart.renderer.category.AbstractCategoryItemRenderer;
 import org.jfree.chart.renderer.category.BarRenderer;
-import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.chart.renderer.category.StandardBarPainter;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 import org.jfree.data.general.DefaultPieDataset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import com.itextpdf.text.BadElementException;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
@@ -67,20 +45,18 @@ import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfGState;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfPageEventHelper;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
-import com.mysql.jdbc.log.Log;
 import com.rohan.stockapp.dto.StockReportElement;
 import com.rohan.stockapp.enums.ReportColors;
-import com.rohan.stockapp.json.Stock;
-import com.rohan.stockapp.json.StockAdd;
-import com.rohan.stockapp.json.StockSet;
 
 @Component
 public class ChartConstruction {
 	
 	private final Logger logger = LoggerFactory.getLogger(this.getClass());
+	
+	private final int ALLOCATION_CHART =  0;
+	private final int PERFORMANCE_CHART = 1;
 	
 	@Value("${marginLeft:36}")	 
 	Float marginLeft;
@@ -103,7 +79,7 @@ public class ChartConstruction {
 	@Value("${bgImage}")
 	private String backgroundImageFile;
 	
-	@Value("${elementtwidth:450}")
+	@Value("${elementwidth:450}")
 	private Integer elementWidth;	
 	@Value("${elementheight:250}")
 	private Integer elementHeight;
@@ -131,13 +107,9 @@ public class ChartConstruction {
               document.add(stockStatsTable(stockElementList));
               addEmptyLine(document,  1);
               
-              addTemplateToPage(writer, stockElementList, 0, 450, 250, 38, 300); 
-              addTemplateToPage(writer, stockElementList, 1, 450, 250, 38, 38);
+              addTemplateToPage(writer, stockElementList, ALLOCATION_CHART, elementWidth, elementHeight, portFolioAllocationPagePositionX, portFolioAllocationPagePositionY); 
+              addTemplateToPage(writer, stockElementList, PERFORMANCE_CHART, elementWidth, elementHeight, performancePagePositionX, performancePagePositionY);
 
-              // here we have all the necessary ingredients. now need to pass this in to our charting methods (1&2)
-              //ChartMaker cm1 = preSetup(writer, stockElementList, /*this::myFirst,*/ 450, 250, 38, 300);              
-              //ChartDoer cd1 = new ChartDoer(cm1); // will have the actual chart specific logic
-            
               addEmptyLine(document,  1);
               
               document.close();
@@ -149,35 +121,6 @@ public class ChartConstruction {
         }
 	}
 	
-	// WIP
-	private ChartMaker preSetup(PdfWriter writer, List<StockReportElement> stockElementList, /*Runnable method, */int width,
-			int height, int pagePositionX, int pagePositionY) {
-		// TODO Auto-generated method stub
-		int stretchFactor0 = 0;
-        PdfContentByte contentByte0 = writer.getDirectContent();
-        PdfContentByte contentByteLine0 = writer.getDirectContent();
-        PdfTemplate templateLine0 = contentByteLine0.createTemplate(elementWidth, elementHeight+stretchFactor0);
-        Graphics2D graphics2dLine0 = templateLine0.createGraphics(elementWidth, elementHeight+stretchFactor0,
-          		new DefaultFontMapper());
-        Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, elementWidth, elementHeight+stretchFactor0);
-        ChartMaker cm1 = new ChartMaker(graphics2dLine0, rectangle2dLine0, stockElementList);
-        return cm1;
-        //if (type == 0) makePortfolioAllocationPieChart(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
-        //if (type == 1) createPerformanceGraph(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
-        //method.run(); // runs the thing in myFirst or mySecond
-        //graphics2dLine0.dispose();
-        //contentByte0.addTemplate(templateLine0, pagePositionX, pagePositionY); // positioning on page
-
-	}
-	
-	public void myFirst() {
-		
-	}
-	
-	public void mySecond() {
-		
-	}
-
 	private void addTemplateToPage(PdfWriter writer, List<StockReportElement> stockElementList, int type, Integer width, Integer height, Integer pagePositionX, Integer pagePositionY) {		
 		int stretchFactor0 = 0;
         PdfContentByte contentByte0 = writer.getDirectContent();
@@ -186,8 +129,8 @@ public class ChartConstruction {
         Graphics2D graphics2dLine0 = templateLine0.createGraphics(elementWidth, elementHeight+stretchFactor0,
           		new DefaultFontMapper());
         Rectangle2D rectangle2dLine0 = new Rectangle2D.Double(0, 0, elementWidth, elementHeight+stretchFactor0);
-        if (type == 0) makePortfolioAllocationPieChart(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
-        if (type == 1) createPerformanceGraph(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
+        if (type == ALLOCATION_CHART) makePortfolioAllocationPieChart(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
+        if (type == PERFORMANCE_CHART) createPerformanceGraph(stockElementList).draw(graphics2dLine0, rectangle2dLine0);
         graphics2dLine0.dispose();
         contentByte0.addTemplate(templateLine0, pagePositionX, pagePositionY); // positioning on page
 	}
@@ -345,7 +288,7 @@ public class ChartConstruction {
           PdfPCell cell = new PdfPCell(new Phrase(text.trim(), font));
           cell.setHorizontalAlignment(align);
           cell.setColspan(colspan);
-          //in case there is no text and you wan to create an empty row
+          //in case there is no text and you want to create an empty row
           if(text.trim().equalsIgnoreCase("")){
            cell.setMinimumHeight(10f);
           }

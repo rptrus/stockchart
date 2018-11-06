@@ -149,24 +149,3 @@ public class ResourceController {
 	}
 
 }
-
-
-// multi
-
-/*
-{
-"stocks" : [
-	{
-	"stock":"WBC",
-	"dateAdded" : "2018-10-20T13:23:43.533Z",
-	"price" : 32.44
-	},
-	{
-	"stock":"VAS",
-	"dateAdded" : "2018-10-20T13:23:43.533Z",
-	"price" : 72.43
-	},
-	]
-	"comments" : "kecewa"
-}
-*/

@@ -1,6 +1,5 @@
 package com.rohan.stockapp.service;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -16,9 +15,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
 import javax.transaction.Transactional;
 
+import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,14 +67,12 @@ public class Processor {
 	@Autowired
 	private HoldingRepository holdingRepository;
 
-	// TODO, add stocks
 	public boolean addStock(String json, String username, String password) throws JsonParseException, JsonMappingException, IOException, InterruptedException, ExecutionException {
 		StockAdd stockAdd = objectmapper.readValue(json, StockAdd.class);
 		User theUser = userService.getUser(username);
 		Set<Holding> userHoldings = userService.getUserHoldings(theUser); // A
 		for (Holding holding: userHoldings) {
 			if (holding.getCode().equals(stockAdd.getStock())) {				
-				// problem
 				logger.error("Stock code {} already exists!");
 				return false;
 			}
@@ -87,7 +84,6 @@ public class Processor {
 		newHolding.setPrice(new BigDecimal(stockAdd.getPrice()));
 		newHolding.setNumberOfUnits(stockAdd.getNumberOfUnits());
 		newHolding.setUser(theUser);
-		//newHolding.setQuote(quote);		
 		userHoldings.add(newHolding);
 		constructChart(toStockElementList(userHoldings, getLatestPrices(userHoldings)), fileName);
 		return true;
@@ -194,9 +190,8 @@ public class Processor {
 		Set<Holding> stockSet = new HashSet<>();
 		stockSet.add(holding1);
 		stockSet.add(holding2);
-		
 		user.setHoldings(stockSet);
-		
+
 		userRepository.save(user);
 	}
 	
@@ -211,7 +206,7 @@ public class Processor {
 			Holding holding2Delete = holdingRepository.findByCode(stock.getStock());
 			if (userHoldings.remove(holding2Delete))
 				holdingRepository.save(holding2Delete);
-			System.out.println("Done");
+			logger.info("Delete operation performed");
 		} else if (size == 0) {
 			logger.error("Nothing to delete!");
 		}
@@ -238,12 +233,17 @@ public class Processor {
 		Map<String, Future<String>> waitForPrices = new HashMap<String, Future<String>>();
 		for (Holding stock: holdings) {
 			Future<String> currentPrice = stockPriceRetriever.retrieveQuote(stock.getCode());
-			waitForPrices.put(stock.getCode(), currentPrice);			
+			waitForPrices.put(stock.getCode(), currentPrice);
 		}
 		// now we just get all our values that have been computed in parallel 
 		for (Map.Entry<String, Future<String>> entry : waitForPrices.entrySet())
-		{
-		    returnedPrices.put(entry.getKey(), new BigDecimal(entry.getValue().get()));
+		{			
+			if (NumberUtils.isCreatable(entry.getValue().get())) 
+					returnedPrices.put(entry.getKey(), new BigDecimal(entry.getValue().get()));
+			else { // "unknown" or any other non numeric value
+				logger.error("Non numeric price returned. Skipped."); // Good enough measure for now.
+				continue;
+			}
 		}
 		return returnedPrices;
 	}
